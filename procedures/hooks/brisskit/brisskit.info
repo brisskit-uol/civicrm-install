@@ -1,0 +1,9 @@
+name = BRISSkit
+description = BRISSkit core extension for CiviCRM providing specialised hooks for research study participant management
+core = 7.x
+package = BRISSkit
+files[] = brisskit.test
+files[] = lib/core.php
+files[] = lib/init.php
+files[] = lib/integration.php
+

@@ -1,0 +1,6 @@
+name = BRISSkit - Participant Information
+description = Participant information module
+package = BRISSkit
+core = 7.x
+dependencies[] = brisskit
+
