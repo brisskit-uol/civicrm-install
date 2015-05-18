@@ -2,6 +2,99 @@
 # Drupal-7 CiviCRM install script.
 # 
 
+#
+# This script installs Drupal, CiviCRM and BRISSKit on Ubuntu (Debian may work but is untested)
+#
+# 1) Install Ubuntu packages (apt-get install etc) 
+# 2) Download appropriate versions of drupal and CiviCRM
+# 3) Extract files
+# 4) Ensure mysql database and users are created
+# 5) Run standard install scripts
+# 6) Update CiviCRM with BRISSKit code
+# 7) Update DB with with BRISSKit-specific data
+# 8) When finished, display instructions for completing a) The drupal installation and b) the CiviCRM installation
+#
+# 
+# After installation, CiviCRM and BRISSKit modules should be enabled in the drupal admin backend, and the CiviCase component enabled in the CiviCRM admin (Administer->System Settings->Enable CiviCRM components)
+#
+# 
+# Drupal and civicrm can share the same database connection parameters but it should also work if they are separate.
+#
+#
+# The script can run in 3 situations:
+#
+# 1) Fresh install
+#
+# 2) Install on top of a previous version
+# This will retain the existing data but in tests did not fix errors in a previous installation
+#
+# 3) A reinstall, by specifying the -r option
+# This drops existing drupal and CiviCRM databases and users
+# Probably more reliable than 2)
+#
+#
+# Prerequisites:
+# ==============
+#
+# mysql must be installed (apt-get install mysql-server) or available remotely
+#
+# 
+# TODO 
+# ==== 
+#
+# while testing this was needed - echo extension=mysql.so >> /etc/php5/apache2/php.ini followed by "service apache2 restart". Is there a more robust was of doing this?
+#
+# The script now exits when there's a problem running drush. But there may be other fatal errors that are not detected?
+#
+# Some irrelevant messages are displayed, e.g. the results of dpkg -l
+#  
+# The script won't (in most cases) upgrade Ubuntu packages that are not already installed - should we have an option for this?
+#
+# Work needed on determination of hostname/domain - at the moment hostnames with hyphens are truncated.
+#
+
+
+# 2 command line options are allowed, (h)elp and (r)einstall 
+while getopts "hr" option; do
+    case $option in
+    h) echo "usage: $0 [-h] [-r]
+h - this text 
+r - reinstall (removes existing database and settings)"; exit;;
+    r) reinstall_option=1;;
+    \?) exit;;
+    esac
+done
+
+#
+# "reinstall" will delete data so get confirmation we really want to do it
+if  [ $reinstall_option ]
+then 
+    read -p "Reinstallation will any remove existing settings and drupal and civicrm databases. Would you like to continue? y/N " confirm_reinstall
+    if [[ -n "$confirm_reinstall" && ( $confirm_reinstall == "Y" || $confirm_reinstall == "y" ) ]]
+        then 
+            reinstall=1
+        else
+            echo "User requested abort ... exiting"
+            exit
+    fi
+else 
+    reinstall=0
+fi
+
+#
+# Need to be logged in as root (or sudo)
+if [ $EUID -ne 0 ]
+then
+    echo "The script must run as root"
+    exit 1
+fi
+
+#
+# Start in directory of this script
+cd `dirname "$0"`
+
+
+
 #======================================================
 # Edit/replace the following with suitable DB values.
 #
@@ -20,12 +113,18 @@
 #
 DBTYPE="mysql"
 MYSQL_HOST="localhost"
-MYSQL_ROOT_UN=""
-MYSQL_ROOT_PW=""
+MYSQL_ROOT_UN="root"
+MYSQL_ROOT_PW="graphic_dust"
 MYSQL_CIVICRM_DB="civicrm"
 MYSQL_CIVICRM_UN="civicrm"
 MYSQL_CIVICRM_PW="br1ssk1t123"
+MYSQL_DRUPAL_DB="drupal"
+MYSQL_DRUPAL_UN="drupal"
+MYSQL_DRUPAL_PW="br1ssk1t123"
 #======================================================
+
+DOMAIN=".brisskit.le.ac.uk"
+POSTFIX_MAILNAME="civicrm.brisskit.org.uk"
 
 #
 # BRISSkit directories.
@@ -49,6 +148,8 @@ apacheroot="${drupalroot}/site"
 # If the intended virtual host name does not match the local machine name then you can set this manually.
 #drupalhost="$(hostname -f)"
 #Get the bru name eg bru1 as the hostname rather than bru1-civicrm
+
+# TODO - this is specific to bru
 drupalhost="$(hostname | cut -d'-' -f1)"
 
 #
@@ -165,16 +266,16 @@ apt-get update
         # Set configuration params before the install.
 cat | debconf-set-selections << EOF
 postfix postfix/root_address string root
-postfix postfix/mynetworks string 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128
-postfix postfix/mailname	        string  civicrm.brisskit.org.uk
-postfix postfix/recipient_delim	    string
-postfix postfix/main_mailer_type    select  Internet Site
-postfix postfix/destinations	    string  localhost
-postfix postfix/mailbox_limit	    string  51200000
-postfix postfix/relayhost	        string
-postfix postfix/procmail	        boolean false
-postfix postfix/protocols	        select  all
-postfix postfix/chattr	            boolean false
+postfix postfix/mynetworks             string 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128
+postfix postfix/mailname               string  ${POSTFIX_MAILNAME}
+postfix postfix/recipient_delim        string
+postfix postfix/main_mailer_type       select  Internet Site
+postfix postfix/destinations           string  localhost
+postfix postfix/mailbox_limit          string  51200000
+postfix postfix/relayhost              string
+postfix postfix/procmail               boolean false
+postfix postfix/protocols              select  all
+postfix postfix/chattr                 boolean false
 EOF
 
         #
@@ -214,6 +315,43 @@ EOF
 # rather than on a remote machine.
 #=================================================================================
 apt-get install -y mysql-client
+
+# Check we can connect as root mysql user, otherwise exit
+if mysql --user=${MYSQL_ROOT_UN} \
+         --password=${MYSQL_ROOT_PW} \
+         --execute=quit
+then
+        echo "Able to connect to mysql root user - continuing"
+else
+        echo "Could not connect to database as root"
+        exit
+fi
+
+# If user requested to delete DB do it
+if [ $reinstall ]
+    then
+    # drop civi user...     
+    mysql --user=${MYSQL_ROOT_UN} \
+          --password=${MYSQL_ROOT_PW} \
+          --execute="DROP USER ${MYSQL_CIVICRM_UN}@${MYSQL_HOST}"
+
+    # Drop drupal user...     
+    mysql --user=${MYSQL_ROOT_UN} \
+          --password=${MYSQL_ROOT_PW} \
+          --execute="DROP USER ${MYSQL_DRUPAL_UN}@${MYSQL_HOST}"
+
+    # Delete the civi database...
+    mysql --user=${MYSQL_ROOT_UN} \
+          --password=${MYSQL_ROOT_PW} \
+          --execute="DROP DATABASE ${MYSQL_CIVICRM_DB}"
+
+    # Delete the drupal database...
+    mysql --user=${MYSQL_ROOT_UN} \
+          --password=${MYSQL_ROOT_PW} \
+          --execute="DROP DATABASE ${MYSQL_DRUPAL_DB}"
+fi
+ 
+
 # Create the civi database...
 mysql --user=${MYSQL_ROOT_UN} \
       --password=${MYSQL_ROOT_PW} \
@@ -228,6 +366,21 @@ mysql --user=${MYSQL_ROOT_UN} \
 mysql --user=${MYSQL_ROOT_UN} \
       --password=${MYSQL_ROOT_PW} \
       --execute="GRANT ALL ON ${MYSQL_CIVICRM_DB}.* TO ${MYSQL_CIVICRM_UN}@${MYSQL_HOST}"
+
+# Create the drupal database...
+mysql --user=${MYSQL_ROOT_UN} \
+      --password=${MYSQL_ROOT_PW} \
+      --execute="CREATE DATABASE ${MYSQL_DRUPAL_DB}"
+ 
+# Create an overall drupal user...     
+mysql --user=${MYSQL_ROOT_UN} \
+      --password=${MYSQL_ROOT_PW} \
+      --execute="CREATE USER ${MYSQL_DRUPAL_UN}@${MYSQL_HOST} identified by '${MYSQL_DRUPAL_PW}'"
+
+# Grant everything on the drupal database to the overall drupal user...
+mysql --user=${MYSQL_ROOT_UN} \
+      --password=${MYSQL_ROOT_PW} \
+      --execute="GRANT ALL ON ${MYSQL_DRUPAL_DB}.* TO ${MYSQL_DRUPAL_UN}@${MYSQL_HOST}"
 
 #
 # Database admin functions.
@@ -272,11 +425,34 @@ mysql --user=${MYSQL_ROOT_UN} \
     if [ ! -e "/etc/apache2/mods-available/php5.conf" ]
     then
 
-        apt-get -y install php5 php5-mysql php5-gd
-        apt-get -y install php5-gmp
+        apt-get -y install php5
     fi
 
 #
+# php modules
+    if  ! dpkg -l php5-mysql 
+    then
+        apt-get -y install php5-mysql
+        # TODO Check if these are needed after a working install
+        #
+        if ! egrep ^extension=mysql.so /etc/php5/apache2/php.ini 
+        then
+            echo extension=mysql.so >> /etc/php5/apache2/php.ini
+            service apache2 restart
+        fi
+    fi
+    
+    if  ! dpkg -l php5-gd 
+    then
+        apt-get -y install php5-gd
+    fi
+
+    if ! dpkg -l php5-gmp 
+    then
+        apt-get -y install php5-gmp
+    fi
+
+
 # Install PECL uploadprogress library.
 
     peclini="/etc/php5/apache2/conf.d/uploadprogress.ini"
@@ -365,7 +541,9 @@ EOF
 
     fi
 
-    drush status
+#
+# if drush returns a non-zero error code we want to exit from the script
+    drush status || exit 1
 
 #
 # Install Drupal.
@@ -388,7 +566,7 @@ EOF
     echo "path [${installpath}]"
     echo "name [${installname}]"
 
-    if [ ! -d "${drupalcore}" ]
+    if [[ ! -d "${drupalcore}" || $reinstall ]]
     then
 
         if [ ! -d "${installpath}" ]
@@ -398,10 +576,9 @@ EOF
 
         pushd "${installpath}"
 
-            drush dl "${drupalversion}"  --drupal-project-rename="${installname}"
+            drush dl "${drupalversion}"  --drupal-project-rename="${installname}" || exit 1
 
         popd
-
     fi
 
 #
@@ -409,15 +586,15 @@ EOF
 
     pushd "${drupalcore}"
 
-        drush dl 'content_taxonomy'
-        drush dl 'ctools'
-        drush dl 'date'
-        drush dl 'email'
-        drush dl 'favicon'
-        drush dl 'field_group'
-        drush dl 'token'
-        drush dl 'views'
-        drush dl 'og'
+        drush dl 'content_taxonomy' || exit 1
+        drush dl 'ctools' || exit 1
+        drush dl 'date' || exit 1
+        drush dl 'email' || exit 1
+        drush dl 'favicon' || exit 1
+        drush dl 'field_group' || exit 1
+        drush dl 'token' || exit 1
+        drush dl 'views' || exit 1
+        drush dl 'og' || exit 1
 
     popd
 
@@ -476,15 +653,22 @@ EOF
             fi
 
             #
+            # If user has requested a reinstallation, remove existing settings
+            if [ $reinstall ] 
+            then
+                rm 'settings.php'
+            fi
+
+            #
             # Create our site settings.
             if [ ! -e 'settings.php' ] 
             then
             
                 host="${MYSQL_HOST}"
                 type="${DBTYPE}"
-                name="${MYSQL_CIVICRM_DB}"
-                user="${MYSQL_CIVICRM_UN}"
-                pass="${MYSQL_CIVICRM_PW}"
+                name="${MYSQL_DRUPAL_DB}"
+                user="${MYSQL_DRUPAL_UN}"
+                pass="${MYSQL_DRUPAL_PW}"
                 salt="$(randompass)"
 
 cat > settings.php << EOF
@@ -631,7 +815,7 @@ EOF
 
             pushd "${civicrminstall}"
 
-                if [ ! -d "civicrm" ]
+                if [[ ! -d "civicrm" || $reinstall ]]
                 then
 
                     if [ ! -d "../../zipfiles" ]
@@ -648,7 +832,7 @@ EOF
 
                     popd
 
-                    tar -xvzf "../../zipfiles/${civicrmtarfile}"
+                    tar -xvzf "../../zipfiles/${civicrmtarfile}" > /dev/null
                 fi
 
             popd
@@ -702,11 +886,14 @@ EOF
 
 #I am hoping I am back in the correct directory now, should probably check!
 
+cd `dirname "$0"`
+cd ..
+
 #Get the patch files
 #svn checkout ${patch_location}
 
 #Move to right place
-mv patches ${patch_root}
+cp -r patches ${patch_root}
 
 #Apply the patch
 patch -bf ${civicrmroot}/installs/${civicrminstall}/civicrm/api/v3/CustomValue.php ${patch_root}/CustomValue4_1_3.patch
@@ -719,7 +906,7 @@ patch -bf ${civicrmroot}/installs/${civicrminstall}/civicrm/api/v3/CustomValue.p
 #svn checkout ${case_location}
 
 #Move to right place
-mv civicases ${case_root}
+cp -r civicases ${case_root}
 
 
 #####################################################################
@@ -729,7 +916,7 @@ mv civicases ${case_root}
 #svn checkout ${brisskit_module_location}
 
 #Move to right place
-mv hooks/brisskit ${brisskit_module_root}
+cp -r hooks/brisskit ${brisskit_module_root}
 
 # Add a link to the new module.
 ln -s ${brisskit_module_root} ${drupalcore}/sites/all/modules/brisskit
@@ -747,12 +934,13 @@ crontab cron/crontab
 
 if [ "${drupalstub}" != "" ]
 then
-    sitehref="http://${drupalhost}.brisskit.le.ac.uk/${drupalstub}"
+    sitehref="http://${drupalhost}${DOMAIN}/${drupalstub}"
 else
-    sitehref="http://${drupalhost}.brisskit.le.ac.uk"
+    sitehref="http://${drupalhost}${DOMAIN}"
 fi
 
 cat << EOF
+
     -------------------------
     -------------------------
     Drupal/CiviCRM deployment completed.
@@ -779,9 +967,9 @@ cat << EOF
         Drupal Database Settings
 
             MySQL server   : ${MYSQL_HOST}
-            MySQL username : ${MYSQL_CIVICRM_UN}
-            MySQL password : ${MYSQL_CIVICRM_PW}
-            MySQL database : ${MYSQL_CIVICRM_DB}
+            MySQL username : ${MYSQL_DRUPAL_UN}
+            MySQL password : ${MYSQL_DRUPAL_PW}
+            MySQL database : ${MYSQL_DRUPAL_DB}
 
     -------------------------
     -------------------------
