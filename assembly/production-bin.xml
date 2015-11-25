@@ -37,11 +37,5 @@
  		<outputDirectory>hooks</outputDirectory>
  		<fileMode>0774</fileMode>
     </fileSet>
-    <fileSet>
-    	<!-- includes  -->
- 		<directory>${basedir}/procedures/patches</directory> 
- 		<outputDirectory>patches</outputDirectory>
- 		<fileMode>0774</fileMode>
-    </fileSet>
   </fileSets>
 </assembly>

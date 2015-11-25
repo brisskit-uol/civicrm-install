@@ -1,0 +1,22 @@
+<?php
+include_once "lib/init.php";
+/**
+ * Implements hook_enable().
+ */
+function brisskit_enable() {
+	civicrm_initialize();
+	try {
+                init_required_fields();
+                
+                #TODO switch on cases -> supposed to be active but aren't??
+                #TODO update the path to civicase XML files
+                drupal_set_message("BRISSkit extension for CiviCRM was setup successfully");
+                
+                create_admin_db();
+                drupal_set_message("BRISSkit ID database created successfully");
+        }
+        catch(Exception $ex) {
+                drupal_set_message("An unexpected error occured during the BRISSkit extension setup: ".$ex->getMessage(),"error");
+        }
+	
+}
