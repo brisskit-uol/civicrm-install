@@ -43,12 +43,50 @@ class BK_Temp {
   */
   // Note: The $case_type_id represents the study 
 
-
-
-# TODO - this is untested!!!!
   static function create_contact_groups_for_study ($case_type_id) {
-    return;
+    $result = civicrm_api3('CaseType', 'get', array(
+      'sequential' => 1,
+      'id' => $case_type_id,
+    ));
 
+    if ($result['is_error']) {  
+       throw new Exception("Error retrieving case $case_id " . __FILE__ . ' ' . __METHOD__ . "\n");
+    }
+    else {
+      if ($result['count'] != 1) {
+        throw new Exception("$case_id is not a valid case id in " . __FILE__ . ' ' . __METHOD__ . "\n");
+      }
+      else {
+        $case_type_name = $result['values'][0]['name'];
+      }
+    }
+/*
+    $professional_groups = BK_Temp::get_professional_groups ();
+    foreach ($professional_groups as $group_name) {
+    }
+*/
+
+    $result = civicrm_api3('Group', 'create', array(
+      'sequential' => 1,
+      'title' => $case_type_name
+    ));
+  }
+
+  # Currently unused 
+  static function get_professional_groups () {
+    return array(
+      "Receptionist",
+      "Study Member",
+      "Practice Nurse",
+      "Administrator",    // TODO - sort out a less generic name?
+      "Power User",
+      "Study Administrator",
+      "Nurse");
+  }
+
+
+  // When a contact is added to a study, we want to automatically add the patient to the group associated with the study
+  static function add_patient_to_group ($contact_id, $case_type_id) {
     $result = civicrm_api3('CaseType', 'get', array(
       'sequential' => 1,
       'id' => $case_type_id,
@@ -66,31 +104,74 @@ class BK_Temp {
       }
     }
 
-    foreach ($professional_groups as $group_name) {
-      $professional_groups = BK_Temp::get_professional_groups ();
-      // TODO
-      // civicrm_API3(
-      $result = civicrm_api3('Group', 'create', array(
-        'sequential' => 1,
-        'title' => $case_type_name
-        ));
+    
+    $result = civicrm_api3('Group', 'get', array(
+      'sequential' => 1,
+      'title' => $case_type_name,
+    ));
 
-      // Error checking
-
-      
+    if ($result['is_error']) {  
+       throw new Exception("Error retrieving group for $case_type_name" . __FILE__ . ' ' . __METHOD__ . "\n");
     }
+    else {
+      if ($result['count'] != 1) {
+        throw new Exception("$case_type_name is not a valid group title in " . __FILE__ . ' ' . __METHOD__ . "\n");
+      }
+      else {
+        $group_id = $result['values'][0]['id'];
+      }
+    }
+
+    $result = civicrm_api3('GroupContact', 'create', array(
+      'sequential' => 1,
+      'group_id' => $group_id,
+      'contact_id' => $contact_id,
+      'status' => 'Added'
+    ));
   }
 
-  static function get_professional_groups () {
-    return array(
-      "Receptionist",
-      "Study Member",
-      "Practice Nurse",
-      "Administrator",    // TODO - sort out a less generic name?
-      "Power User",
-      "Study Administrator",
-      "Nurse");
+  static function remove_patient_from_group ($contact_id, $case_type_id) {
+    $result = civicrm_api3('CaseType', 'get', array(
+      'sequential' => 1,
+      'id' => $case_type_id,
+    ));
+
+    if ($result['is_error']) {  
+       throw new Exception("Error retrieving case $case_id " . __FILE__ . ' ' . __METHOD__ . "\n");
+    }
+    else {
+      if ($result['count'] != 1) {
+        throw new Exception("$case_id is not a valid case id in " . __FILE__ . ' ' . __METHOD__ . "\n");
+      }
+      else {
+        $case_type_name = $result['values'][0]['name'];
+      }
+    }
+
+    
+    $result = civicrm_api3('Group', 'get', array(
+      'sequential' => 1,
+      'title' => $case_type_name,
+    ));
+
+    if ($result['is_error']) {  
+       throw new Exception("Error retrieving group for $case_type_name" . __FILE__ . ' ' . __METHOD__ . "\n");
+    }
+    else {
+      if ($result['count'] != 1) {
+        throw new Exception("$case_type_name is not a valid group title in " . __FILE__ . ' ' . __METHOD__ . "\n");
+      }
+      else {
+        $group_id = $result['values'][0]['id'];
+      }
+    }
+
+    $result = civicrm_api3('GroupContact', 'delete', array(
+      'group_id' => $group_id,
+      'contact_id' => $contact_id
+    ));
   }
+  
 
   /* 
    * When a study is created in CiviStudy (a Case) we need to create an associated study in CiviRecruitment (a Case Type)

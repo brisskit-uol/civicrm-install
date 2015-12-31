@@ -33,12 +33,23 @@ static function connect() {
 #get the brisskit institutional prefix from the brisskit config file
 static function get_inst_prefix() {
 	#get brisskit config
+
+/*
 	$config = parse_ini_file ( BK_Constants::BRISSKIT_CONFIG );
+*/
+
+  // 4th Dec 2015
+  //
+  // For now we'll hardcode this, until we can work out a reasonable place to record the inst_prefix, rather than in a config file under /etc
+  //
+  
+  $config['inst_prefix'] = 'GEN';
 	
+  	
 	if (!$config) {
 		throw new Exception("Unable to read config file (".BK_Constants::BRISSKIT_CONFIG.".");
 	}
-	
+
 	#get prefix from config
 	if (isset($config['inst_prefix'])) {
 		$inst_prefix = $config['inst_prefix'];
@@ -49,32 +60,6 @@ static function get_inst_prefix() {
 	return $inst_prefix;
 }
 
-#create tables in admin database to store used brisskit IDs
-static function create_admin_db() {
-
-  throw new Exception("Deprecated " . __FILE__ . __METHOD__);
-	
-	#check the inst prefix config is set up
-	$inst_prefix = self::get_inst_prefix();
-	$con = connect();
-	
-	$selected_db = mysql_select_db("admin", $con);
-	
-	if(!$selected_db)
-	{
-		throw new Exception(mysql_error()."could not select `admin`");
-	}
-	$query = "CREATE TABLE IF NOT EXISTS `existing_brisskit_id` (
-	  `bid` varchar(16) NOT NULL DEFAULT '0',
-	  PRIMARY KEY (`bid`)
-	) ENGINE=MyISAM DEFAULT CHARSET=latin1";
-	mysql_query($query);
-	if(mysql_error())
-	{
-		throw new Exception("Unable to create `existing_brisskit_id` table: ".mysql_error());
-	}
-	
-}
 
 #create brisskit ID
 static function make_brisskit_id()
@@ -84,7 +69,6 @@ static function make_brisskit_id()
 	
 	//$verbose=FALSE;
 	$verbose=TRUE;
-	$con = connect();	
 
 	//Check only letters and numbers
 	if(!ctype_alnum($inst_prefix))
@@ -99,12 +83,6 @@ static function make_brisskit_id()
 	$maximum_number=999999999;
 	$range = $maximum_number - $minimum_number;
 
-
-	$selected_db = mysql_select_db("admin", $con);
-	if(!$selected_db)
-	{
-		throw new Exception(mysql_error());
-	}
 
 	//LOCK the table so other people cant even READ it.
 	mysql_query("LOCK TABLES existing_brisskit_id WRITE");
@@ -130,7 +108,8 @@ static function make_brisskit_id()
 
 		if($verbose)
 		{
-			error_log("Proposed ID = ".$proposed_bid."<br/>\n");
+                        BK_Utils::audit("make_brisskit_id Proposed ID = ".$proposed_bid);
+
 		}
 
 		
@@ -165,7 +144,7 @@ static function make_brisskit_id()
 	$query = "INSERT INTO existing_brisskit_id VALUES (\"".$proposed_bid."\")";
 	if($verbose)
 	{
-		error_log($query."<br/>\n");
+                BK_Utils::audit("make_brisskit_id query $query");
 	}
 	mysql_query($query);
 	if(mysql_error())

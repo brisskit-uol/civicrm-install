@@ -5,6 +5,6 @@
 --- 1,5 ----
   <?php
 + 
-+ include('brisskit_civicrm.settings.php');
++ include_once('brisskit_civicrm.settings.php');
 + 
   /*

@@ -3,6 +3,7 @@
 class BK_Utils {
 
   static function audit($message, $audit=false) {
+//    return;
 	if ($audit) {
     	$file = '/tmp/bk_audit.log';
 	}
@@ -62,6 +63,7 @@ static function get_contact_with_custom_values($contact_id) {
 	require_once "api/v3/Contact.php";
 	require_once "api/v3/utils.php";
 	require_once "api/v3/CustomValue.php";
+
 	
 	#get contact details
 	$contact_complete = civicrm_api3_contact_get(array('contact_id' => $contact_id));
@@ -78,7 +80,7 @@ static function get_contact_with_custom_values($contact_id) {
 			return $contact;
 		}
 		else {
-			throw new Exception("Unknown Error:".print_r($cust_vals));
+			throw new Exception("Unknown Error:" . print_r($cust_vals, TRUE));
 		}
 	}
 	
@@ -96,9 +98,16 @@ static function get_contact_with_custom_values($contact_id) {
 }
 
 #utility method to set a custom field in parameters using the global variable (e.g. internally substitutes 'custom_2_1' for 'brisskit_id'
-static function set_custom_field($key, $value, &$params) {
+static function set_custom_field($label, $value, &$params) {
 	global $custom_fields;
-	$params[$custom_fields[$key]]=$value;
+
+  if (isset($custom_fields[$label])) {
+    $field_name = $custom_fields[$label]; // e.g. brisskit_id;
+	  $params[$field_name] = $value;
+  }
+  else {
+    BK_Utils::set_status("$label is not a valid custom field in " . __FILE__ . " " . __FUNCTION__);
+  }
 }
 
 #utility method containing human readable keys and names for custom  'permission' fields in the database
@@ -146,7 +155,7 @@ static function get_case_contact_with_custom_values($case_id) {
 			return $contact;
 		}
 		else {
-			throw new Exception("Unknown Error:".print_r($cust_vals));
+			throw new Exception("Unknown Error:" . print_r($cust_vals, TRUE));
 		}
 	}
 	
@@ -193,7 +202,7 @@ static function get_contact($contact_id) {
 			return $contact;
 		}
 		else {
-			throw new Exception("Unknown Error:".print_r($cust_vals));
+			throw new Exception("Unknown Error:" . print_r($cust_vals, TRUE));
 		}
 	}
 	
@@ -226,7 +235,7 @@ static function get_activity($act_id) {
 			return $act;
 		}
 		else {
-			throw new Exception("Unknown Error:".print_r($cust_vals));
+			throw new Exception("Unknown Error:" . print_r($cust_vals, TRUE));
 		}
 	}
 	
@@ -479,7 +488,7 @@ static function age($date_of_birth){
 
 #utility method to create civi custom group
 static function create_civi_custom_group($params) {
-  self::audit(print_r($params), TRUE);
+  self::audit(print_r($params, TRUE));
   
 	require_once 'api/v3/CustomGroup.php';
 	require_once 'api/v3/utils.php';
@@ -499,8 +508,8 @@ static function create_civi_custom_group($params) {
 
 #utility method to create custom field in civi custom group (where $group is a custom group object)
 static function create_civi_custom_field(&$cg, $params) {
-  self::audit(print_r($cg), TRUE);
-  self::audit(print_r($params), TRUE);
+  self::audit(print_r($cg, TRUE));
+  self::audit(print_r($params, TRUE));
 	require_once 'api/v3/CustomField.php';
 	require_once 'api/v3/utils.php';
 	
@@ -529,8 +538,8 @@ static function create_civi_custom_field(&$cg, $params) {
 
 #utility method to create option value in civi group (where $group is a group name)
 static function create_civi_option_value($group,$params) {
-  self::audit(print_r($group), TRUE);
-  self::audit(print_r($params), TRUE);
+  self::audit(print_r($group, TRUE));
+  self::audit(print_r($params, TRUE));
 	require_once "api/v3/OptionGroup.php";
 	require_once "api/v3/OptionValue.php";
 	require_once "api/v3/utils.php";
@@ -571,7 +580,7 @@ static function create_civi_option_value($group,$params) {
 
 #utility method to create option group in civi
 static function create_civi_option_group($params) {
-  self::audit(print_r($params), TRUE);
+  self::audit(print_r($params, TRUE));
 	require_once "api/v3/OptionGroup.php";
 	require_once "api/v3/utils.php";
 	$params['version']=3;
@@ -660,7 +669,6 @@ static function workflow_fields() {
 #utility method to determine if workflow has been triggered (use parameters passed from civicrm_pre DB hook)
 static function is_triggered(&$params) {
   self::set_status(print_r($params, TRUE));
-  # print_r($params);
 	self::populate_custom_fields(self::workflow_fields(),$params,"Workflow");
   self::set_status("ljlkjlkjlkj");
   self::set_status(print_r($params, TRUE));

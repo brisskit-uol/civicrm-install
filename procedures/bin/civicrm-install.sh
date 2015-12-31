@@ -1,4 +1,7 @@
 #!/bin/bash
+
+
+
 # Drupal-7 CiviCRM install script.
 # 
 
@@ -51,9 +54,6 @@
 # The script won't (in most cases) upgrade Ubuntu packages that are not already installed - should we have an option for this?
 #
 # Work needed on determination of hostname/domain - at the moment hostnames with hyphens are truncated.
-#
-# Ensure script can run unattended
-#
 #
 
 # Need to be logged in as root (or sudo)
@@ -153,7 +153,7 @@ then
 	# Use IP address for dev systems etc.
 	drupalhost="$(hostname -I | cut -d' ' -f1)" 
 else
-	# TODO - this is specific to bru
+	# TODO - this is specific to bru, usually we'd want hyphenated domain names to be left as-is
 	drupalhost="$(hostname | cut -d'-' -f1)"
 fi
 
@@ -400,7 +400,6 @@ mysql --user=${MYSQL_ROOT_UN} \
 
 #
 # Check prerequisite: Apache 2.4.3
-# TODO - there may be a nicer way of getting the current version number.
 #
 
 current_apache_version=$(apachectl -v | grep 'Server version' | cut -d"/" -f2 | cut -d" " -f1)
@@ -437,8 +436,7 @@ fi
     if  ! dpkg -l php5-mysql 
     then
         apt-get -y install php5-mysql
-        # TODO Check if these are needed after a working install
-        #
+
         if ! egrep ^extension=mysql.so /etc/php5/apache2/php.ini 
         then
             echo extension=mysql.so >> /etc/php5/apache2/php.ini
@@ -477,41 +475,17 @@ fi
         if [ -z "${pecllib}" ]
         then
 
-            #
-            # Install make.
-            if [ -z "$(which make)" ]
-            then
-
-                apt-get -y install make
-
-            fi
-
-            #
-            # Install PHP pear libraries.
-            if [ -z "$(which pear)" ]
-            then
-
-                apt-get -y install php-pear
-
-            fi
-
-            #
-            # Install PHP dev libraries.
-            if [ -z "$(which pecl)" ]
-            then
-
-                apt-get -y install php5-dev
-
-            fi
+            apt-get -y install php5-dev
+            apt-get -y install make
+            apt-get -y install php-pear
 
             #
             # Install the library.
-			#
-			# Use -Z option to work around bug in some 32-bit versions of Ubuntu
-			# https://bugs.launchpad.net/ubuntu/+source/php5/+bug/1315888
-			# https://bugs.launchpad.net/ubuntu/+source/php5/+bug/1310552
-			# TODO - Ade to test this is sorted
-			#
+						#
+						# Use -Z option to work around bug in some 32-bit versions of Ubuntu
+						# https://bugs.launchpad.net/ubuntu/+source/php5/+bug/1315888
+						# https://bugs.launchpad.net/ubuntu/+source/php5/+bug/1310552
+						#
             pecl install -Z uploadprogress
 
         fi
@@ -528,9 +502,6 @@ EOF
         service apache2 restart
 
     fi
-
-#
-# Install Drupal shell (drush).
 
     #
     # Install Drupal shell (drush).
@@ -556,7 +527,6 @@ EOF
 		# Use -Z option to work around bug in some 32-bit versions of Ubuntu
 		# https://bugs.launchpad.net/ubuntu/+source/php5/+bug/1315888
 		# https://bugs.launchpad.net/ubuntu/+source/php5/+bug/1310552
-		# TODO - Ade to test this is sorted
 		#
         pear install -Z drush/drush
 
@@ -957,7 +927,7 @@ ln -s ${brisskit_module_root} ${drupalcore}/sites/all/modules/brisskit
 #
 #
 # Export configuration so php can use it via require_once() etc
-# This may not be needed when we get the civix code working - TODO
+# This may not be needed now we are using civix
 #
 #
 # 
@@ -983,6 +953,9 @@ crontab cron/crontab
 cd ${scriptdir}
 
 source copy_drupal_modules.sh
+source copy_cron.sh
+#source ../../copy_extension.sh
+# source fix_perms.sh		# If debugging enabled
 
 cat > ${scriptdir}/installation.txt << EOF
 
@@ -1016,16 +989,13 @@ cat > ${scriptdir}/installation.txt << EOF
             MySQL password : ${MYSQL_DRUPAL_PW}
             MySQL database : ${MYSQL_DRUPAL_DB}
 
-    -------------------------
-    -------------------------
-
     Next, enable CiviCase component via CiviCRM->Administer->System Settings->Enable Components
 
     Once you have completed the online configuration,
     remember to protect the drupal settings.
 
-    chmod 'g-w' "${drupalcore}/sites/${drupalsite}"
-    chmod 'g-w' "${drupalcore}/sites/${drupalsite}/settings.php"
+    sudo chmod 'g-w' "${drupalcore}/sites/${drupalsite}"
+    sudo chmod 'g-w' "${drupalcore}/sites/${drupalsite}/settings.php"
 
     You also need to enable the brisskit module, these depend on CiviCase being enabled. 
     You need to be in the module directory to do this, so
@@ -1034,23 +1004,58 @@ cat > ${scriptdir}/installation.txt << EOF
     
     drush en bk_role_perms,bk_drupal_sample_data
 
-    Set the Extension Resource URL in the CiviCRM admin backend to:
+    Set the Extension Resource URL in the CiviCRM admin backend (Administer -> System Settings -> Resource URLs) to:
+    	${sitehref}/civicrm/sites/default/files/civicrm/custom_ext
 
-    http://br-civi-recruitment.cloudapp.net/civicrm/sites/default/files/civicrm/custom_ext
+    Copy the brisskit files:
+      sudo /bin/bash copy_extension.sh
+
+		Set the directory locations (Administer -> System Settings -> Directories) as:
+			Custom Templates: /var/local/brisskit/civicases
+			Custom PHP Path Directory: /var/local/brisskit/drupal/site/civicrm/sites/default/files/civicrm/custom_ext/uk.ac.le.brisskit/CRM/Brisskit/
+			CiviCRM Extensions Directory: /var/local/brisskit/drupal/site/civicrm/sites/default/files/civicrm/custom_ext/
+
 
     Install the brisskit extension in the CiviCRM admin backend
+			Administer -> System Settings -> Manage Extensions
+			
+    To prevent log files beeing downloadable (a security issue) add the following lines to /etc/apache2/apache2.conf then restart the webserver 
+    with 'service apache2 restart':
+
+<Directory /var/local/brisskit/drupal/site/civicrm/>
+  Options Indexes FollowSymLinks
+  AllowOverride All
+  Require all granted
+</Directory>
+  
+    Drupal/CiviCRM deployment completed - these instructions have been saved to ${scriptdir}/installation.txt.
+
+    -------------------------
+    -------------------------
 
     
 
 EOF
 
+clear
+
+echo -e "\e[36m"
 cat ${scriptdir}/installation.txt
+echo -e "\e[39m"
 
 if $install_localization_files
 then
 	echo "To setup localization for your region go to Administer >> Localization >> Languages, Currency, Locations in CiviCRM"
 	echo "(http://wiki.civicrm.org/confluence/display/CRMDOC/i18n+Administrator%27s+Guide%3A+Using+CiviCRM+in+your+own+language)"
 fi
+
+#
+# Make a wider theme available for civicrm - install via Drupal backend
+#
+pushd "${drupalcore}/sites/all/themes"
+sudo wget http://ftp.drupal.org/files/projects/civi_bartik-7.x-1.0.tar.gz
+sudo tar -xvzf civi_bartik-7.x-1.0.tar.gz
+popd
 
 
 #Need to add the brisskit module download and enable a la:

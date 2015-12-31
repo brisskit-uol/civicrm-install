@@ -1,6 +1,0 @@
-name = BRISSkit - Tissue
-description = Tissue consent module
-package = BRISSkit
-core = 7.x
-dependencies[] = brisskit
-

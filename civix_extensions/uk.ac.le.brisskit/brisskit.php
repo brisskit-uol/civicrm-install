@@ -77,12 +77,7 @@ function brisskit_civicrm_enable() {
   try {
 //    init_required_fields();
 
-    #TODO switch on cases -> supposed to be active but aren't??
-    #TODO update the path to civicase XML files
     BK_Utils::set_status("BRISSkit extension for CiviCRM was setup successfully");
-
-//    create_admin_db(); TODO
-    BK_Utils::set_status("BRISSkit ID database created successfully");
 
   }
   catch(Exception $ex) {
@@ -232,12 +227,89 @@ function brisskit_civicrm_links( $op, $objectName, $objectId, &$links, &$mask, &
 
  include_once "CRM/Brisskit/BK_Core.php";
 
+//function brisskit_civicrm_alterContent(  &$content, $context, $tplName, &$object ) {
+function brisskit_civicrm_alterTemplateFile($formName, &$form, $context, &$tplName) {
+  BK_Utils::audit ('TPL name: ' . $tplName); 
+
+// get all assigned template vars
+/*
+  global $smarty;
+$all_tpl_vars = $smarty->get_template_vars();
+
+// take a look at them
+BK_Utils::audit (print_r($all_tpl_vars, TRUE));
+*/
+
+   BK_Utils::audit (print_r($form, TRUE));
+}
+
 /**
  * #implement civi's civicrm_buildForm hook
  * #prevent users from adding participants to cases unless they have permission to contact participant
  */
 function brisskit_civicrm_buildForm($formName, &$form) {
   BK_Utils::audit ('Form name: ' . $formName); 
+
+/*
+  if ($formName == 'CRM_Contact_Form_Contact') {
+  }
+*/
+
+  //
+  // On the add case form we have a dropdown of case types. Here we want to show only the pertinent type according to
+  // whether we're in CiviCase or CiviRecruitment.
+  //
+  // Note that Civi forms are based on PEAR classes - here we're looking at the HTML_QuickForm_select class derived from
+  // HTML_QuickForm_element
+  //
+  // Dropdown options are held as a simple array, all other attributes of the element stay the same.
+  // 
+  //
+  if ($formName == 'CRM_Case_Form_Case') {
+    if ( $form->elementExists( 'case_type_id' ) ) {
+      $element =& $form->getElement('case_type_id');    // Return PEAR HTML_QuickForm_element object
+
+      if ($element->getType() == 'select') {
+        $options =& $element->_options;                 // Yuck!! But couldn't find method to return what we need.
+        $new_options = array();                         // We will work on a copy then replace the options array when we're done
+        foreach ($options as $option) {
+          if ( preg_match("/ Template$/", $option['text'], $matches)) {
+          }
+          else if (BK_Component::is_study() && preg_match("/^Study:/", $option['text'], $matches) ) {
+          }
+          else if (BK_Component::is_recruitment() && !preg_match("/^Study:/", $option['text'], $matches) ) {
+          }
+          else {
+            $new_options[] = $option;
+          }
+        }
+        $element->_options = $new_options;
+      }
+    }
+  }
+
+/*
+           [16] => HTML_QuickForm_select Object
+                (
+                    [_options] => Array
+                        (
+                            [0] => Array
+                                (
+                                    [text] => Clinical Trial
+                                    [attr] => Array
+                                        (
+                                            [value] => 61
+                                        )
+
+                                )
+
+                            [1] => Array
+                                (
+                                    [text] => Comparison studies Template
+                                    [attr] => Array
+                                        (
+*/
+
 
 
   # 2. The brisskit extension checks that permission has been given to do this before the form has been generated
@@ -273,25 +345,36 @@ function brisskit_civicrm_buildForm($formName, &$form) {
  * 2) Run old drupal code, for CiviRecruitment only
  */
 function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
-  BK_Utils::audit("brisskit_civicrm_pre: $op, $objectName, $id");
+  BK_Utils::audit("brisskit_civicrm_pre: $op, $objectName, $id, " .  print_r($params, TRUE) );
 
   /*
     If a recruitment is being created update our read-only custom recruitment count field.
   */
 	if ($objectName=='Case') {
+    $case_id = $id;
+    
     BK_Utils::audit("Checking is recuitment and creating");
-    if ((BK_Component::is_recruitment()) 
-      &&  ($op==BK_Constants::ACTION_CREATE)) {
+    if (BK_Component::is_recruitment()) {
+      if ($op==BK_Constants::ACTION_CREATE) {
 
-      BK_Utils::audit("Is recruitment and creating - true");
+        BK_Utils::audit("Is recruitment and creating - true");
 
-      $contactId = $params['client_id'][0];
+        $contactId = $params['client_id'][0];
+        $case_type_id = $params['case_type_id'];
 
-      // Currently we just use the built-in caseCount function.  Future versions may check participant status/activities completed before
-      // setting this count.
-      BK_Utils::audit("Before setting recruitment count");
-      $result = BK_Utils::set_recruitment_count ($contactId, CRM_Case_BAO_Case::caseCount($contactId, TRUE)+1);
-      BK_Utils::audit("After setting recruitment count");
+        // Currently we just use the built-in caseCount function.  Future versions may check participant status/activities completed before
+        // setting this count.
+        BK_Utils::audit("Before setting recruitment count");
+        $result = BK_Utils::set_recruitment_count ($contactId, CRM_Case_BAO_Case::caseCount($contactId, TRUE)+1);
+        BK_Utils::audit("After setting recruitment count");
+  
+        BK_Temp::add_patient_to_group ($contactId, $case_type_id);
+      }
+      else if ($op==BK_Constants::ACTION_DELETE) {
+        $contactId = BK_Utils::single_value_query("SELECT contact_id FROM civicrm_case_contact WHERE case_id = ?", $case_id);
+        $case_type_id = BK_Utils::single_value_query("SELECT case_type_id FROM civicrm_case WHERE id = ?", $case_id);
+        BK_Temp::remove_patient_from_group ($contactId, $case_type_id);
+      }
     }
   }
 	else if ($objectName=='CaseType') {
@@ -300,18 +383,9 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
     }
   }
 
-  BK_Utils::audit("Checking is recuitment");
-  BK_Utils::audit(print_r($params, TRUE));
-  if (!BK_Component::is_recruitment()) {
-    BK_Utils::audit("Not recruitment");
-    return;
-  }
-  BK_Utils::audit("Is recruitment");
-
   // The code from here is based on original drupal module
   BK_Utils::audit ("pre hook op $op name $objectName");
   BK_Utils::audit ('params:'.print_r($params, TRUE));
-	global $triggered;
 	global $prev_stat_id;
 	
 	#if only viewing or deleting don't do anything
@@ -333,7 +407,8 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
 				BK_Utils::set_status("Permission to contact the individual was given by GP/clinician - participant has now been pseudonymised (ID:".$bkid.")");
 			}
 			if ($op=="edit") {
-				 $contact = get_contact_with_custom_values($params['contact_id']);
+				 ###axa20151207 fix wsod caused by calling get_contact_with_custom_values() without class prefix BK_Utils::
+                                 $contact = BK_Utils::get_contact_with_custom_values($params['contact_id']);
 				 $prev_stat_id = isset($contact['status']) ? $contact['status'] : null;
 			}
 			
@@ -342,7 +417,17 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
 			BK_Utils::set_status($ex->getMessage(),"error");	
 		}
 	}
+
+  BK_Utils::audit("Checking is recuitment");
+  BK_Utils::audit(print_r($params, TRUE));
+  if (!BK_Component::is_recruitment()) {
+    BK_Utils::audit("Not recruitment");
+    return;
+  }
+  BK_Utils::audit("Is recruitment");
+
 	
+	global $triggered;
 	if ($objectName=='Activity') {
 		#try/catch will produce a nice drupal style message if there is a problem
 
@@ -378,8 +463,12 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
 			#if consent was given for this Activity (ie. status is Accepted)
 			if (BK_Core::is_consent_level_accepted($params)) {
 				#check that the ActivityType is part of the case definition if not exit hook
-				$activity_type = get_activity_type_name($params['activity_type_id']);
-				if (!BK_Core::case_allows_activity($params['case_id'], $activity_type)) return;
+				$activity_type = BK_Utils::get_activity_type_name($params['activity_type_id']);
+                                #Tell the user whats happened
+				if (!BK_Core::case_allows_activity($params['case_id'], $activity_type)) {
+                                  BK_Utils::set_status("Case does not allow this activity");
+                                  return;
+                                }
 				BK_Utils::set_status("'$activity_type' was Accepted");
 				
 				#invoke the BRISSkit 'consent_success' hook
@@ -464,7 +553,12 @@ function _case_type_created($objectId, &$objectRef) {
       BK_Utils::audit("Case type is " . print_r($case_type, TRUE));
 
 			BK_Utils::audit('xxxxxxxxxxxxx');
-  		$description = $case_type['description'];
+			if (isset($case_type['description'])) {
+  			$description = $case_type['description'];
+			}
+			else {
+				$description = '';
+			}
 			BK_Utils::audit("Description is $description");
       BK_Utils::audit("prefix is " . BK_Constants::STUDY_TEMPLATE_PREFIX);
 	
@@ -533,8 +627,7 @@ function _case_created($objectId, &$objectRef) {
   // Called from _post
 
 	global $study_created_flag;
-  // $objectId represents the case we have created
-  $caseId = $objectId;
+  $caseId = $objectId;    // $objectId represents the case we have created
 
   // Cases are always created via the admin backend, as "Add Study" or "Add Recruitment" 
   // We may have come here via a json request, in which case we do not know from the url whether we're dealing with a case
@@ -542,7 +635,6 @@ function _case_created($objectId, &$objectRef) {
   // Luckily we can determine the component via the associated Case Type
 
   $case_type_id = $objectRef->case_type_id;
-
   $component_id = BK_Component::get_component_id_by_case_type_id($case_type_id);
   $component_name = BK_Component::get_component_name_by_id($component_id);
   BK_Utils::audit("case id and case_type_id are $caseId $case_type_id $component_id $component_name");
@@ -550,6 +642,7 @@ function _case_created($objectId, &$objectRef) {
   if ($component_name == BK_Constants::CIVIRECRUITMENT) {
     BK_Utils::audit("creating CiviRecruitment case mapping for $caseId, $component_id");
     BK_Component::create_case_mapping($caseId, $component_id);
+
   }
   else if ($component_name == BK_Constants::CIVISTUDY) {
     $study_created_flag = TRUE;   // So when we later create a case type we know the case type is for a recruitment
@@ -562,10 +655,16 @@ function _case_created($objectId, &$objectRef) {
     //
     BK_Utils::audit("creating CiviRecruitment case type for $caseId, $component_id");
     $new_case_type_id = BK_Temp::create_study_case_type_in_recruitment ( $objectRef);
+
+
 /* Not sure if we need this  !!!! Shouldn't it be a case mapping????? Or will it be created automatically anyway???
     BK_Utils::audit(__FUNCTION__ . "creating CiviRecruitment case type mapping for $new_case_type_id, $caseId, $component_id");
     BK_Component::create_case_type_mapping ($new_case_type_id, $component_id);
 */
+
+    /* We also want to create groups so we can create ACLs */
+
+    BK_Temp::create_contact_groups_for_study($new_case_type_id);
   }
 }
 
@@ -595,11 +694,10 @@ function brisskit_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
 			_case_type_deleted($objectId);
     }
   }
-
   // When a user creates a study in CiviStudy, we will create an associated Case Type for CiviRecruitment
-  // TODO - make sure this runs only for CiviCase
   else if ($objectName=="Case") {
     if ($op == 'create') {
+			BK_Utils::audit(__FUNCTION__ . print_r($objectRef, TRUE));
 			_case_created($objectId, $objectRef);
     }
     else if ($op == 'delete') {
@@ -607,18 +705,23 @@ function brisskit_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
     }
   }
 
+  // The code from here is based on original drupal module
+	global $prev_stat_id;
+	if ($objectName=='Individual') {
+    if (!empty($prev_stat_id)) {
+      BK_Core::log_status_if_required($objectId,$op,$prev_stat_id);
+    }
+	}
+	
+	if ($objectName=="GroupContact") {
+	}
+	
   if (!BK_Component::is_recruitment()) {
     return;
   }
 
-  // The code from here is based on original drupal module
-	global $prev_stat_id;
-	global $triggered;
-	if ($objectName=="GroupContact" || $objectName=='Individual') {
-		BK_Core::log_status_if_required($objectId,$op,$prev_stat_id);
-	}
-	
 	#when work flow has been triggered need to set the wf_trigger flag to 1
+	global $triggered;
 	if ($triggered) {
 		set_activity_triggered($objectId);
 		$triggered=false;
@@ -875,12 +978,15 @@ function _getMenuKeyMax($menuArray) {
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_navigationMenu
  */
 function _getNavigationPermission ($research_type) {
+  return 'access my cases and activities,access all cases and activities';
+/* TODO
   if ($research_type=='recruitment') {
     return 'access my recruitments and activities,access all recruitments and activities';
   }
   else {
     return 'access my cases and activities,access all cases and activities';
   }
+*/
 }
 
 function brisskit_civicrm_queryObjects(&$queryObjects, $type) {
@@ -891,11 +997,38 @@ function brisskit_civicrm_queryObjects(&$queryObjects, $type) {
 }
 
 function brisskit_civicrm_pageRun(&$page) {
-  // $component_name = BK_Component::get_component_name_by_case_id(33);
-
   $pageName = $page->getVar('_name');
   BK_Utils::audit ("pageRun hook $pageName");
+  BK_Utils::audit ('Page: ' . print_r($page, TRUE));
 
+  if ($pageName == 'CRM_Case_Page_DashBoard') {
+    $template = $page->getTemplate();   // Returns the Smarty object
+    BK_Utils::audit ('Template: ' . print_r($template, TRUE));
+    $cases_summary = $template->get_template_vars('casesSummary');
+    BK_Utils::audit ('Cases: ' . print_r($cases_summary, TRUE));
+
+    //
+    // Only include case types pertinent to CiviStudy or CiviRecruitment as applicable
+    // Never include the "template" case types
+    //
+
+    $case_types = $cases_summary['rows'];
+    $new_rows = array();
+
+    foreach ($case_types as $case_type_name => $case_type_id) {
+      if ( preg_match("/ Template$/", $case_type_name, $matches)) {
+      }
+      else if (BK_Component::is_study() && preg_match("/^Study:/", $case_type_name, $matches) ) {
+      }
+      else if (BK_Component::is_recruitment() && !preg_match("/^Study:/", $case_type_name, $matches) ) {
+      }
+      else {
+        $new_rows[$case_type_name] = $case_type_id;
+      }
+    }
+    $cases_summary['rows'] = $new_rows;
+    $page->getTemplate()->assign('casesSummary', $cases_summary);
+  }
 }
 
 function brisskit_civicrm_aclWhereClause( $type, &$tables, &$whereTables, &$contactID, &$where ) {
@@ -909,7 +1042,7 @@ function brisskit_civicrm_aclWhereClause( $type, &$tables, &$whereTables, &$cont
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_permission
  * 
  * Note: $permissions array changed for versions >=4.6.  Here we handle 
- * <4.6 one way and >4.6 the new way. TODO handle <4.3.
+ * <4.6 one way and >4.6 the new way. Note: will not deal with <4.3.
  */
 function brisskit_civicrm_permission(&$permissions) {
   // Firstly call the API to get our version number
@@ -962,11 +1095,11 @@ function brisskit_civicrm_permission(&$permissions) {
 /* this is the < 4.6 way of setting permissions */
 function _pre46_permissions ($permissions) {
   $prefix = ts('CiviCRM Recruitment') . ': '; // name of extension or module
-  $permissions['add Recruitments'] = $prefix . ts('add recruitments');
-  $permissions['administer Recruitment'] = $prefix . ts('administer recruitment');
+  $permissions['add Recruitments']        = $prefix . ts('add recruitments');
+  $permissions['administer Recruitment']  = $prefix . ts('administer recruitment');
   $permissions['access my recruitments and activities'] = $prefix . ts('access my recruitments and activities');
   $permissions['access all recruitments and activities'] = $prefix . ts('access all recruitments and activities');
-  $permissions['delete in Recruitment'] = $prefix . ts('delete recruitment');
+  $permissions['delete in Recruitment']   = $prefix . ts('delete recruitment');
   return $permissions;
 }
 

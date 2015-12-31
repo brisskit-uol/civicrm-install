@@ -1,3 +1,6 @@
+pushd `dirname "$0"`
+
+
 source ./procedures/bin/install-config.sh
 source ./procedures/bin/set-install-paths.sh
 
@@ -62,4 +65,6 @@ popd
 popd
 popd
 pwd
+
+popd
 

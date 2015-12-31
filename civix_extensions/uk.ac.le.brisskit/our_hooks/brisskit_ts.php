@@ -51,13 +51,10 @@ function brisskit_ts($string, $params = array()) {
                                     'match_type'=>$dao->match_type,
                                     'id'=>$dao->id);
     }
-    // print_r($result);
 /*
     if ($result->is_error) {
      throw new Exception("Error retrieving word replacements " . __FILE__ . ' ' . __METHOD__ . "\n");
     }
-
-    print_r($result);
 */
 
 #print $string;

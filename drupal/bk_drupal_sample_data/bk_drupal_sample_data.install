@@ -309,7 +309,6 @@ Build an array of Drupal users to be created/deleted.
 Each user consists of a name, email address and optional role(s) to be asigned.
 */
 function load_sample_drupal_users () {
-//TODO Load from XML
 
     $bk_users = array();
     // Create a new user obj
@@ -426,7 +425,6 @@ Build an array of Civi users to be created/deleted in Civi only.  These will NOT
 Each user consists of first name, last name, group and email address.
 */
 function load_sample_civicrm_contacts () {
-//TODO Load from XML
 
     $bk_civi_users = array();
     $bk_civi_users[]= array(

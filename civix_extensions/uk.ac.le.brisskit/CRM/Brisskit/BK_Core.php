@@ -272,17 +272,28 @@ static function add_participant_to_initial_study($params) {
 static function pseudo_individual(&$params) {
 	$bkid = BK_ID::make_brisskit_id();
 
-	self::set_custom_field('brisskit_id',$bkid, $params);
+	BK_Utils::set_custom_field('brisskit_id',$bkid, $params);
 	$date = new DateTime();
-	self::set_custom_field('date_given',$date->format('Y-m-d'),$params);
+	BK_Utils::set_custom_field('date_given',$date->format('Y-m-d'),$params);
 	return $bkid;
 }
 
 static function case_allows_activity($case_id, $activity_name) {
 	
-	#load XML file for case type
-	$xml = self::load_case_xml($case_id);
-	
+        # Be defensive
+        if ((empty($case_id))
+        ||  (empty($activity_name))) { 
+                return false;
+        }
+
+        #load XML file for case type
+        $xml = self::load_case_xml($case_id);
+
+        # Be defensive
+        if (!is_object($xml)) {
+                return false;
+        }
+
 	foreach($xml->ActivityTypes->children() as $at) {
 		if ($at->name == $activity_name) {
 			return true;

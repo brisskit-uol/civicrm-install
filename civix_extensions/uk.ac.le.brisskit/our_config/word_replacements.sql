@@ -13,7 +13,7 @@ INSERT INTO `civicrm_word_replacement` VALUES (0,'study|Add Case','Register new 
 
 INSERT INTO `civicrm_word_replacement` VALUES (0,'recruitment|Case','Recruitment',1,'exactMatch',1);
 INSERT INTO `civicrm_word_replacement` VALUES (0,'recruitment|case','recruitment',1,'exactMatch',1);
-INSERT INTO `civicrm_word_replacement` VALUES (0,'recruitment|Client','TODO',1,'wildcardMatch',1);
+INSERT INTO `civicrm_word_replacement` VALUES (0,'recruitment|Client','Patient',1,'wildcardMatch',1);
 INSERT INTO `civicrm_word_replacement` VALUES (0,'recruitment|cases','recruitments',1,'wildcardMatch',1);
 INSERT INTO `civicrm_word_replacement` VALUES (0,'recruitment|Cases','Recruitments',1,'wildcardMatch',1);
 INSERT INTO `civicrm_word_replacement` VALUES (0,'recruitment|CiviCase','Study Recruitments',1,'wildcardMatch',1);

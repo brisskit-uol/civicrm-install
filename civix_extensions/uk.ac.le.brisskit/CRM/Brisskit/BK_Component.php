@@ -195,9 +195,13 @@ class BK_Component {
    *
    * We will use url or __FILE__ depending on whether called via http or cli
    *
+   * There are different ways we can determine the context. 
+   * 1) The strings 'study' or 'recruitment' in the URI when we've been able to add these ourselves
+   * 2) From the case we're dealing with where the case id is present in the request uri
+   * 3) From the case we're dealing with where the case id is present in the entryURL parameter (this is used by CiviCRM a bit like referrer, but is not always present).
+   *
    */
   static function get_component_name_by_context() {
-
     BK_Utils::audit(print_r($_REQUEST, TRUE));
 
     BK_Utils::audit('#########' . $_SERVER['REQUEST_URI']);
@@ -210,7 +214,9 @@ class BK_Component {
 
     $case_id = self::extract_case_id_from_uri($_SERVER['REQUEST_URI']);
     if (!$case_id) {
-      $case_id = self::extract_case_id_from_uri($_REQUEST['entryURL']);
+      if (isset($_REQUEST['entryURL'])) {
+        $case_id = self::extract_case_id_from_uri($_REQUEST['entryURL']);
+      }
       if (!$case_id) {
         $case_id = 0;
       }

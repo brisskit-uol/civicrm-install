@@ -1,14 +1,9 @@
 <?php
 include "drupal_setup.php";
 include "HTTP/Request.php";
-#define("I2B2_WEBSERVICE","http://i2b2:8080/i2b2WS/rest/service/pdo");
-#define("CATISSUE_WEBSERVICE","http://catissue:8080/civi.catissue.ws/rest/service/pdo");
-#define("ONYX_WEBSERVICE","http://onyx:8080/onyxWS/rest/service/pdo");
-#define("DATA_SOURCE","BRICCS");
-
-define("I2B2_WEBSERVICE","http://bk.akriga.co.uk/i2b2WS/rest/service/pdo");
-define("CATISSUE_WEBSERVICE","http://bk.akriga.co.uk/civi.catissue.ws/rest/service/pdo");
-define("ONYX_WEBSERVICE","http://bk.akriga.co.uk/onyxWS/rest/service/pdo");
+define("I2B2_WEBSERVICE","http://i2b2:8080/i2b2WS/rest/service/pdo");
+define("CATISSUE_WEBSERVICE","http://catissue:8080/civi.catissue.ws/rest/service/pdo");
+define("ONYX_WEBSERVICE","http://onyx:8080/onyxWS/rest/service/pdo");
 define("DATA_SOURCE","BRICCS");
 define("PDO_STRING","http://www.i2b2.org/xsd/hive/pdo/1.1/pdo");
 

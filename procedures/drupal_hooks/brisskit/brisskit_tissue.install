@@ -7,7 +7,7 @@ include_once "lib/constants.php";
 function brisskit_tissue_enable() {
 	civicrm_initialize();
 	try {
-                create_civi_option_value("activity_type", array("name" => TISSUE_CONSENT, "label" =>TISSUE_CONSENT, "is_active"=>1));
+                BK_Utils::create_civi_option_value("activity_type", array("name" => TISSUE_CONSENT, "label" =>TISSUE_CONSENT, "is_active"=>1));
                 drupal_set_message("BRISSkit tissue extension for CiviCRM was setup successfully");
         }
         catch(Exception $ex) {

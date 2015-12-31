@@ -5,5 +5,5 @@
 --- 366,369 ----
       $this->query("SET NAMES utf8");
 + 
-+     include('brisskit_DAO.php');
++     include_once('brisskit_DAO.php');
     }

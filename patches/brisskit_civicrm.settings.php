@@ -1,15 +1,19 @@
 <?php
 
-define ("BK_EXTENSIONS_DIR",
-  dirname( __FILE__ )
-  . DIRECTORY_SEPARATOR . 'files'
-  . DIRECTORY_SEPARATOR . 'civicrm'
-  . DIRECTORY_SEPARATOR . 'custom_ext');
+if (!defined('BK_EXTENSIONS_DIR')) {
+  define ("BK_EXTENSIONS_DIR",
+    dirname( __FILE__ )
+    . DIRECTORY_SEPARATOR . 'files'
+    . DIRECTORY_SEPARATOR . 'civicrm'
+    . DIRECTORY_SEPARATOR . 'custom_ext');
+}
 
-define ("BK_HOOKS_DIR",
-  BK_EXTENSIONS_DIR
-  . DIRECTORY_SEPARATOR . 'uk.ac.le.brisskit'
-  . DIRECTORY_SEPARATOR . 'our_hooks');
+if (!defined('BK_HOOKS_DIR')) {
+  define ("BK_HOOKS_DIR",
+    BK_EXTENSIONS_DIR
+    . DIRECTORY_SEPARATOR . 'uk.ac.le.brisskit'
+    . DIRECTORY_SEPARATOR . 'our_hooks');
+}
 
 /* Default extension directory so that our extension is found without setting extensions directory */
 global $civicrm_setting;

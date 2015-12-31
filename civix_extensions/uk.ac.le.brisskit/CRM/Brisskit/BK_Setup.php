@@ -24,7 +24,7 @@ class BK_Setup {
     #set is active and is view for some and weight (order) of fields
     BK_Utils::create_civi_custom_field($cg, array("weight"=>1, "label" => "Permission to contact", "data_type" => "Boolean", "html_type" => "Radio","is_active"=>1));
     BK_Utils::create_civi_custom_field($cg, array("weight"=>2, "label" => "BRISSkit ID", "data_type" => "String", "html_type" => "Text","is_active"=>1));
-    BK_Utils::create_civi_custom_field($cg, array("weight"=>3, "label" => "Date Permission Given", "data_type" => "Date", "html_type" => "Text","is_active"=>1));
+    BK_Utils::create_civi_custom_field($cg, array("weight"=>3, "label" => "Date Permission Given", "data_type" => "Date", "html_type" => "Select Date","date_format" => "MM d, yy","is_active"=>1));
     BK_Utils::create_civi_custom_field($cg, array("weight"=>4, "label" => "Comments", "data_type" => "Memo", "html_type" => "TextArea","is_active"=>1,"note_columns"=>80, "note_rows"=>4));
 
 

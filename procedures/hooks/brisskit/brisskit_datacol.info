@@ -1,6 +1,0 @@
-name = BRISSkit - Data Collection
-description = Data collection module
-package = BRISSkit
-core = 7.x
-dependencies[] = brisskit
-
