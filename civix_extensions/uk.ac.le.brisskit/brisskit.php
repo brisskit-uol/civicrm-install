@@ -1015,17 +1015,21 @@ function brisskit_civicrm_pageRun(&$page) {
     $case_types = $cases_summary['rows'];
     $new_rows = array();
 
-    foreach ($case_types as $case_type_name => $case_type_id) {
-      if ( preg_match("/ Template$/", $case_type_name, $matches)) {
-      }
-      else if (BK_Component::is_study() && preg_match("/^Study:/", $case_type_name, $matches) ) {
-      }
-      else if (BK_Component::is_recruitment() && !preg_match("/^Study:/", $case_type_name, $matches) ) {
-      }
-      else {
-        $new_rows[$case_type_name] = $case_type_id;
+    ### On a fresh install there won't be any case_types, so we check to avoid warnings on the front-end.
+    if ($case_types>0) {
+      foreach ($case_types as $case_type_name => $case_type_id) {
+        if ( preg_match("/ Template$/", $case_type_name, $matches)) {
+        }
+        else if (BK_Component::is_study() && preg_match("/^Study:/", $case_type_name, $matches) ) {
+        }
+        else if (BK_Component::is_recruitment() && !preg_match("/^Study:/", $case_type_name, $matches) ) {
+        }
+        else {
+          $new_rows[$case_type_name] = $case_type_id;
+        }
       }
     }
+
     $cases_summary['rows'] = $new_rows;
     $page->getTemplate()->assign('casesSummary', $cases_summary);
   }

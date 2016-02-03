@@ -5,5 +5,6 @@
 --- 366,369 ----
       $this->query("SET NAMES utf8");
 + 
-+     include_once('brisskit_DAO.php');
++     ### The included call file runs method BK_Hooks::set_component_name() which ensures our view returns what we expect.
++     include('brisskit_DAO.php');
     }

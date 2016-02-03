@@ -519,7 +519,13 @@ EOF
 
         #
         # Locate the drush metadata.
-        pear channel-discover pear.drush.org
+        # Download latest stable release using the code below or browse to github.com/drush-ops/drush/releases.
+        wget http://files.drush.org/drush.phar
+        chmod +x drush.phar
+        mv drush.phar /usr/local/bin/drush
+        drush init
+        
+        #pear channel-discover pear.drush.org
 
         #
         # Install drush.
@@ -528,7 +534,7 @@ EOF
 		# https://bugs.launchpad.net/ubuntu/+source/php5/+bug/1315888
 		# https://bugs.launchpad.net/ubuntu/+source/php5/+bug/1310552
 		#
-        pear install -Z drush/drush
+        #pear install -Z drush/drush
 
     fi
 
