@@ -856,25 +856,21 @@ EOF
 
     pushd "${drupalcore}/sites/all/modules"
 
-        #
-        # If 'civicrm' is already installed, remove it.
-        if [ -e  "civicrm" ]
+    #
+    # If 'civicrm' is already installed, remove it.
+    if [ -e  "civicrm" ]
+    then
+        if [ -L "civicrm" ]
         then
-            if [ -L "civicrm" ]
-            then
-                rm "civicrm"
-            else
-                rm -f "civicrm"
-            fi
+            rm "civicrm"
+        else
+            rm -f "civicrm"
         fi
-        #
-        # Add a link to the new module.
+    fi
+    #
+    # Add a link to the new module.
 
-
-echo "111111111111"
-	cp -vrp ${civicrmroot}/installs/${civicrminstall}/civicrm/ civicrm
-echo "222222222222222"
-        # ln -s ${civicrmroot}/installs/${civicrminstall}/civicrm/ civicrm
+	  cp -vrp ${civicrmroot}/installs/${civicrminstall}/civicrm/ civicrm
 
     popd
 
@@ -915,7 +911,8 @@ cd ..
 #svn checkout ${case_location}
 
 #Move to right place
-cp -r civicases ${case_root}
+mkdir ${case_root}
+cp -r civicases/. ${case_root}
 
 
 #####################################################################
