@@ -39,6 +39,7 @@
       <label for="bk_search_name">Enter SNumber : </label>
       <input type="text" name="bk_search_name" id="bk_search_name" />
       <button type="button" id="bk_search_button">Populate name</button>
+      <a href="https://patientdemographicservicedev.xuhl-tr.nhs.uk/login.aspx">Register Patient</a>
     </div>
   `;
 
@@ -172,7 +173,7 @@ function jsonCallback(data)
   
   if (data.day != '' && data.month != '' && data.year != '')
   {
-    jQuery('#birth_date').val(data.day + '/' + data.month + '/' + data.year);   
+    jQuery('#birth_date_display').val(data.day + '/' + data.month + '/' + data.year);   
   }
   
   jQuery('#custom_13_-1').val(data.system_number);
