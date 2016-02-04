@@ -68,3 +68,9 @@ pwd
 
 popd
 
+#####################################################################
+# Copy templates and xml files
+echo "Copying template extras and xml"
+mkdir ${case_root}
+cp -r procedures/civicases/. ${case_root}
+
