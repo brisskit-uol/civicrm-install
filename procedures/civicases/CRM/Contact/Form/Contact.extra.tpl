@@ -43,8 +43,6 @@
   `;
 
   jQuery( document ).ready(function() {
-    disableFormFields ();
-
     // Insert our search widget
     if (jQuery('#bk_search_widget').length == 0) {
       jQuery('#contactDetails').prepend(bk_search_widget);
@@ -56,7 +54,9 @@
             dataType: 'jsonp' // Notice! JSONP <-- P (lowercase)  
         });
       });
+      displayAdditionalPhoneFields(1); // Create one extra phone input block so total = 2
     }
+    disableFormFields ();
   });
 </script>
 
@@ -85,9 +85,6 @@ function jsonCallback(data)
 {
   if (data.is_patient_found == 'N') { alert("patient not found")}
 
-  displayAdditionalPhoneFields(5);
-  disableFormFields ();   // Need to disable any we created
-    
   // clear fields
   jQuery('#first_name').val('');
   jQuery('#last_name').val('');
