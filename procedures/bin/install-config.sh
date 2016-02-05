@@ -11,6 +11,7 @@
 # So we use the 4.5.8 version.
 
 default_civicrm_version="4.5.8"
+civicrmversion="4.5.8"
 
 required_min_apache_version=2.4.3
 

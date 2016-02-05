@@ -12,10 +12,20 @@ then
   mkdir -p "${extensions_dir}"
 fi
 
+echo ${civicrminstall}
+
+CRMroot="${drupalcore}/sites/all/modules//civicrm/CRM"
+origCRMroot="${civicrmroot}/installs/${civicrminstall}/civicrm/CRM"
+
+echo "Setting patched files to original versions"
+sudo cp -v "${origCRMroot}/Case/BAO/Case.php"   "${CRMroot}/Case/BAO/Case.php"
+sudo cp -v "${origCRMroot}/Core/DAO.php"        "${CRMroot}/Core/DAO.php"
+sudo cp -v "${origCRMroot}/Core/I18n.php"       "${CRMroot}/Core/I18n.php"
+echo 
+
 echo "Copying files from civix_extensions/uk.ac.le.brisskit to ${extensions_dir}" 
 cp -uvr civix_extensions/uk.ac.le.brisskit "${extensions_dir}"
 echo 
-
 
 echo "Changing to extensions directory"
 pushd civix_extensions/uk.ac.le.brisskit
@@ -29,8 +39,15 @@ echo "Changing to patches directory"
 pushd ../../patches/
 echo 
 
-# /bin/bash sed_script.sh
-/bin/bash Case_patch.sh
+# Use our view for cases rather than the real table
+
+casephp="${CRMroot}/Case/BAO/Case.php"
+
+
+perl -p -i -e 's/civicrm_case"/civicrm_brisskit_case"/g'    "${casephp}"
+perl -p -i -e 's/civicrm_case\./civicrm_brisskit_case\./g'  "${casephp}"
+perl -p -i -e 's/civicrm_case /civicrm_brisskit_case /g'    "${casephp}"
+perl -p -i -e 's/civicrm_case\n/civicrm_brisskit_case\n/g'  "${casephp}"
 
 #
 # patch to include brisskit-specific settings (currently constants) from brisskit_civicrm.settings.php
@@ -38,27 +55,24 @@ echo
 # --forward (ignore if already patched)
 # --reject-file=- (do not create reject file)
 #
-sudo patch --forward --reject-file=- /var/local/brisskit/drupal/site/civicrm/sites/default/civicrm.settings.php civicrm.settings.php.patch
-cp brisskit_civicrm.settings.php /var/local/brisskit/drupal/site/civicrm/sites/default/
+sudo patch --forward --reject-file=- "${drupalcore}/sites/default/civicrm.settings.php" civicrm.settings.php.patch
+cp brisskit_civicrm.settings.php "${drupalcore}/sites/default/"
 
 #
 # patch to include brisskit-specific settings (set mysql variable) from brisskit_DAO.php
 #
-sudo patch --forward --reject-file=- /var/local/brisskit/drupal/site/civicrm/sites/all/modules/civicrm/CRM/Core/DAO.php DAO.php.patch
-cp brisskit_DAO.php /var/local/brisskit/drupal/site/civicrm/sites/all/modules/civicrm/CRM/Core/
+sudo patch --forward --reject-file=- "${CRMroot}/Core/DAO.php" DAO.php.patch
+cp brisskit_DAO.php "${CRMroot}/Core/"
 
 #
 # patch to include brisskit-specific settings (load our replacement for ts() from brisskit_I18n.php
 #
-sudo patch --forward --reject-file=- /var/local/brisskit/drupal/site/civicrm/sites/all/modules/civicrm/CRM/Core/I18n.php I18n.php.patch
-cp brisskit_I18n.php /var/local/brisskit/drupal/site/civicrm/sites/all/modules/civicrm/CRM/Core/
+sudo patch --forward --reject-file=- "${CRMroot}/Core/I18n.php" I18n.php.patch
+cp brisskit_I18n.php "${CRMroot}/Core/"
 
 echo "Changing to patches files directory"
 pushd files/
 echo 
-
-cp  Case.php  /var/local/brisskit/drupal/site/civicrm/sites/all/modules/civicrm/CRM/Case/BAO/
-
 
 echo "Changing back to original directory"
 popd
