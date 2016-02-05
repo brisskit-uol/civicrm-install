@@ -348,9 +348,6 @@ mysql> select * from brisskit_case_mappings;
     $params = array(1 => array($case_id, 'Integer'),
                     2 => array($component_id, 'Integer'));
 
-    BK_Utils::set_status($sql);
-    BK_Utils::set_status($case_id);
-    BK_Utils::set_status($component_id);
     CRM_Core_DAO::executeQuery( $sql, $params );
   }
 

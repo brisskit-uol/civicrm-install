@@ -189,7 +189,6 @@ class BK_Temp {
 
 
     BK_Utils::set_status("Creating study case type for recruitment (Case Type)");
-    BK_Utils::set_status(print_r($objectRef, TRUE));
 
     $subject = $objectRef->subject;
     $case_type_id = $objectRef->case_type_id;
@@ -217,14 +216,12 @@ class BK_Temp {
     ));
 
     if ($activities_template['is_error']) {  
-      BK_Utils::set_status("Result error");
+      BK_Utils::set_status("Error retrieving case type template for $case_type_id");
 			BK_Utils::audit("Error retrieving case type template for $case_type_id " . __FILE__ . ' ' . __METHOD__ . "\n");
       throw new Exception("Error retrieving case type template for $case_type_id " . __FILE__ . ' ' . __METHOD__ . "\n");
     }
     else {
-      BK_Utils::set_status("Result no error");
     }
-    BK_Utils::set_status("Retrieved case type template for $case_type_id");
 
     $definition = $activities_template['values'][0]['definition'];
 
@@ -239,14 +236,11 @@ class BK_Temp {
     BK_Utils::audit(print_r($result, TRUE));
 
     if ($result['is_error']) {  
-      BK_Utils::set_status("Result error");
+      BK_Utils::set_status("Error creating case type $case_type_name ");
 			BK_Utils::audit("Error creating case type $case_type_name " . __FILE__ . ' ' . __METHOD__ . "\n");
       throw new Exception("Error creating case type $case_type_name " . __FILE__ . ' ' . __METHOD__ . "\n");
     }
     else {
-      BK_Utils::set_status("Result no error");
-      BK_Utils::set_status("id is " . $result['values'][0]['id']);
-      BK_Utils::set_status(print_r($result, TRUE));
       return $result['values'][0]['id'];
     }
     BK_Utils::set_status("Created study");

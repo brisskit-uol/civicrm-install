@@ -27,7 +27,7 @@ class BK_Utils {
       if ($type == '') {
         $type = 'no-popup';
       }
-      // CRM_Core_Session::setStatus(ts($message), $title, $type);
+      CRM_Core_Session::setStatus(ts($message), $title, $type);
   }
 
 #utility method which determines the custom fields in parameters ($params) and populates them with human readable keys ($fields) for a particular 
@@ -571,7 +571,7 @@ static function create_civi_option_value($group,$params) {
   }
 	
 	if (!isset($ov['id'])) {
-		throw new Exception("'".$group."' option value '$value' could not be found or multiple options with the same name");
+		throw new Exception("'".$group."' option value '$value' could not be found or multiple options with the same name.");
 	}
 	
 	$id = $ov['id'];
@@ -668,15 +668,10 @@ static function workflow_fields() {
 
 #utility method to determine if workflow has been triggered (use parameters passed from civicrm_pre DB hook)
 static function is_triggered(&$params) {
-  self::set_status(print_r($params, TRUE));
 	self::populate_custom_fields(self::workflow_fields(),$params,"Workflow");
-  self::set_status("ljlkjlkjlkj");
-  self::set_status(print_r($params, TRUE));
 	if (isset($params['wf_triggered']) && $params['wf_triggered']==1) {
-    self::set_status("true");
 		return true;
 	}
-  self::set_status("false");
 	return false;
 }
 

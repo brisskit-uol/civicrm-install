@@ -431,10 +431,6 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
 	if ($objectName=='Activity') {
 		#try/catch will produce a nice drupal style message if there is a problem
 
-    BK_Utils::set_status("Inserting activity");
-    # BK_Utils::set_status(print_r($params, TRUE));
-    
-
 		try {
 			#check if activity has already had workflow triggered
 			if (BK_Utils::is_triggered($params)) return;
