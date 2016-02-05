@@ -970,7 +970,7 @@ cat > ${scriptdir}/installation.txt << EOF
 
     To complete the Drupal configuration goto :
 
-        ${sitehref}/install.php
+        ${sitehref}/install.php	(choose minimal install when prompted)
 
     To complete the CiviCRM configuration goto :
 
@@ -999,13 +999,14 @@ cat > ${scriptdir}/installation.txt << EOF
 
     sudo chmod 'g-w' "${drupalcore}/sites/${drupalsite}"
     sudo chmod 'g-w' "${drupalcore}/sites/${drupalsite}/settings.php"
+    sudo chown -R www-data:www-data "${drupalcore}/sites/${drupalsite}/files/civicrm/templates_c/"
 
     You also need to enable the brisskit module, these depend on CiviCase being enabled. 
     You need to be in the module directory to do this, so
 
     cd ${drupalcore}/sites/all/modules
     
-    drush en bk_role_perms,bk_drupal_sample_data
+    sudo drush en bk_role_perms,bk_drupal_sample_data
 
     Set the Extension Resource URL in the CiviCRM admin backend (Administer -> System Settings -> Resource URLs) to:
     	${sitehref}/civicrm/sites/default/files/civicrm/custom_ext
@@ -1060,6 +1061,8 @@ sudo wget http://ftp.drupal.org/files/projects/civi_bartik-7.x-1.0.tar.gz
 sudo tar -xvzf civi_bartik-7.x-1.0.tar.gz
 popd
 
+# Finally, restart apache
+service apache2 restart
 
 #Need to add the brisskit module download and enable a la:
 #drush en brisskit,brisskit_datacol,brisskit_useinfo,brisskit_tissue

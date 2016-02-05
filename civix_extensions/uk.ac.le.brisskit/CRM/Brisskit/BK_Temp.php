@@ -290,7 +290,7 @@ class BK_Temp {
     $new_name = $name . '_template';
     $new_title = $title . ' Template';
 
-    BK_Utils::audit("Case type name is $case_type_name");
+    BK_Utils::audit("Case type name is $name");
 
 		$new_description = BK_Constants::STUDY_TEMPLATE_PREFIX;
 		$new_description .= $id . ' ' . $title;
@@ -308,7 +308,7 @@ class BK_Temp {
 
     if ($result['is_error']) {  
       BK_Utils::audit("Result error");
-      throw new Exception("Error creating case type template $case_type_name " . __FILE__ . ' ' . __METHOD__ . "\n");
+      throw new Exception("Error creating case type template $name " . __FILE__ . ' ' . __METHOD__ . "\n");
     }
     else {
       BK_Utils::audit("Result no error");
