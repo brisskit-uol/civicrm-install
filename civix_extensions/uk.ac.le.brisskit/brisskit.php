@@ -4,9 +4,6 @@ require_once 'brisskit.civix.php';
 require_once 'CRM/Brisskit/BK_Constants.php';
 require_once 'CRM/Brisskit/BK_Utils.php';
 require_once 'CRM/Brisskit/BK_Temp.php';
-require_once 'CRM/Brisskit/BK_Component.php';
-
-require_once 'our_hooks/brisskit_ts.php';
 
 /**
  * Implements hook_civicrm_config().
@@ -14,8 +11,6 @@ require_once 'our_hooks/brisskit_ts.php';
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_config
  */
 function brisskit_civicrm_config(&$config) {
-  $config->customTranslateFunction = 'brisskit_ts';
-
   BK_Utils::audit("_brisskit_civix_civicrm_config");
 
   $our_hooks_dir = dirname( __FILE__ ) . DIRECTORY_SEPARATOR . 'our_hooks/';
@@ -255,71 +250,6 @@ function brisskit_civicrm_buildForm($formName, &$form) {
   }
 */
 
-  //
-  // On the add case form we have a dropdown of case types. Here we want to show only the pertinent type according to
-  // whether we're in CiviCase or CiviRecruitment.
-  //
-  // Note that Civi forms are based on PEAR classes - here we're looking at the HTML_QuickForm_select class derived from
-  // HTML_QuickForm_element
-  //
-  // Dropdown options are held as a simple array, all other attributes of the element stay the same.
-  // 
-  //
-  if ($formName == 'CRM_Case_Form_Case') {
-    if ( $form->elementExists( 'case_type_id' ) ) {
-      $element =& $form->getElement('case_type_id');    // Return PEAR HTML_QuickForm_element object
-
-      if ($element->getType() == 'select') {
-        $options =& $element->_options;                 // Yuck!! But couldn't find method to return what we need.
-        $new_options = array();                         // We will work on a copy then replace the options array when we're done
-        foreach ($options as $option) {
-          if ( preg_match("/ Template$/", $option['text'], $matches)) {
-          }
-          else if (BK_Component::is_study() && preg_match("/^Study:/", $option['text'], $matches) ) {
-          }
-          else if (BK_Component::is_recruitment() && !preg_match("/^Study:/", $option['text'], $matches) ) {
-          }
-          else {
-            $new_options[] = $option;
-          }
-        }
-        $element->_options = $new_options;
-      }
-    }
-  }
-
-/*
-           [16] => HTML_QuickForm_select Object
-                (
-                    [_options] => Array
-                        (
-                            [0] => Array
-                                (
-                                    [text] => Clinical Trial
-                                    [attr] => Array
-                                        (
-                                            [value] => 61
-                                        )
-
-                                )
-
-                            [1] => Array
-                                (
-                                    [text] => Comparison studies Template
-                                    [attr] => Array
-                                        (
-*/
-
-
-
-  # 2. The brisskit extension checks that permission has been given to do this before the form has been generated
-  if (!BK_Component::is_recruitment()) {
-    BK_Utils::audit ('Component: ' . 'study'); 
-    return;
-  }
-
-  BK_Utils::audit ('Component: ' . 'recruit'); 
-
   // The code from here is based on original drupal module
   if ($formName == 'CRM_Case_Form_Case') {
     if ($form->getAction() == CRM_Core_Action::ADD) {
@@ -353,28 +283,25 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
 	if ($objectName=='Case') {
     $case_id = $id;
     
-    BK_Utils::audit("Checking is recuitment and creating");
-    if (BK_Component::is_recruitment()) {
-      if ($op==BK_Constants::ACTION_CREATE) {
+    if ($op==BK_Constants::ACTION_CREATE) {
 
-        BK_Utils::audit("Is recruitment and creating - true");
+      BK_Utils::audit("Is recruitment and creating - true");
 
-        $contactId = $params['client_id'][0];
-        $case_type_id = $params['case_type_id'];
+      $contactId = $params['client_id'][0];
+      $case_type_id = $params['case_type_id'];
 
-        // Currently we just use the built-in caseCount function.  Future versions may check participant status/activities completed before
-        // setting this count.
-        BK_Utils::audit("Before setting recruitment count");
-        $result = BK_Utils::set_recruitment_count ($contactId, CRM_Case_BAO_Case::caseCount($contactId, TRUE)+1);
-        BK_Utils::audit("After setting recruitment count");
-  
-        BK_Temp::add_patient_to_group ($contactId, $case_type_id);
-      }
-      else if ($op==BK_Constants::ACTION_DELETE) {
-        $contactId = BK_Utils::single_value_query("SELECT contact_id FROM civicrm_case_contact WHERE case_id = ?", $case_id);
-        $case_type_id = BK_Utils::single_value_query("SELECT case_type_id FROM civicrm_case WHERE id = ?", $case_id);
-        BK_Temp::remove_patient_from_group ($contactId, $case_type_id);
-      }
+      // Currently we just use the built-in caseCount function.  Future versions may check participant status/activities completed before
+      // setting this count.
+      BK_Utils::audit("Before setting recruitment count");
+      $result = BK_Utils::set_recruitment_count ($contactId, CRM_Case_BAO_Case::caseCount($contactId, TRUE)+1);
+      BK_Utils::audit("After setting recruitment count");
+
+      BK_Temp::add_patient_to_group ($contactId, $case_type_id);
+    }
+    else if ($op==BK_Constants::ACTION_DELETE) {
+      $contactId = BK_Utils::single_value_query("SELECT contact_id FROM civicrm_case_contact WHERE case_id = ?", $case_id);
+      $case_type_id = BK_Utils::single_value_query("SELECT case_type_id FROM civicrm_case WHERE id = ?", $case_id);
+      BK_Temp::remove_patient_from_group ($contactId, $case_type_id);
     }
   }
 	else if ($objectName=='CaseType') {
@@ -418,14 +345,8 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
 		}
 	}
 
-  BK_Utils::audit("Checking is recuitment");
   BK_Utils::audit(print_r($params, TRUE));
-  if (!BK_Component::is_recruitment()) {
-    BK_Utils::audit("Not recruitment");
-    return;
-  }
   BK_Utils::audit("Is recruitment");
-
 	
 	global $triggered;
 	if ($objectName=='Activity') {
@@ -479,202 +400,16 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
 	}
 }
 
-/*
- * 	Case Types are created in one of 2 ways:
- * 	1) 	Through the standard admin backend, in which case it's for CiviStudy and represents a class of study
- * 			In this situation the context will be "CiviStudy"
- * 	2) 	Automatically after a Case (study) is created in CiviStudy. In this case it's for CiviRecruitment, and represents a specific study
- * 			In this situation the context will also be "CiviStudy"
- * 			This could cause a problem as we need to distinguish between the 2. We therefore pass a global variable to do this.
- * 
- * 	It's the CaseType - Component mapping row which identifies that a case type belongs to a particular component. For 2) the mapping row is 
- * 	created before the Case Type so we can use the existance or otherwise of this row to branch for case 1) or 2)
- */
 function _case_type_created($objectId, &$objectRef) {
-	global $study_created_flag;
-
-  // $objectId represents the case type we have created
-  $caseTypeId = $objectId;
-
-  $component_id = BK_Component::get_component_id_by_case_type_id($caseTypeId);
-
-  if ($component_id > 0) {
-    $component_name = BK_Component::get_component_name_by_id($component_id);
-  }
-  else {
-    $component_name = BK_Constants::CIVISTUDY;
-    $component_id = BK_Component::get_component_id_by_name($component_name);
-  }
-
-  if ($component_name == BK_Constants::CIVIRECRUITMENT) {
-    BK_Utils::audit("No creation of CiviRecruitment case type required");
-    // No action
-  }
-  else if ($component_name == BK_Constants::CIVISTUDY) {
-    if ($study_created_flag) {
-      // i.e. a study was created earlier, and now we're creating a case type for the study, that recruitments can be attached to
-      $recruitment_component_id = BK_Component::get_component_id_by_name(BK_Constants::CIVIRECRUITMENT);
-      BK_Utils::audit(__FUNCTION__ . "creating CiviRecruitment case type mapping for $caseTypeId, $recruitment_component_id");
-      BK_Component::create_case_type_mapping($caseTypeId, $recruitment_component_id);
-    }
-    else {
-			// We need to check whether we're creating a case type representing the normal study type, or a case type holding a template 
-			// We can identify the latter by the description
-			//
-			// For the former we want to automatically create a CT of the latter type
-			//
-
-
-      $result = civicrm_api3('CaseType', 'get', array(
-        'sequential' => 1,
-        'id' => $caseTypeId,
-      ));
-
-      BK_Utils::audit(print_r($result, true));
-
-      if ($result['is_error']) {
-        BK_Utils::audit("Error retrieving case type $caseTypeId " . __FILE__ . ' ' . __METHOD__ . "\n");
-        throw new Exception("Error retrieving case type $caseTypeId " . __FILE__ . ' ' . __METHOD__ . "\n");
-      }
-      else {
-        if ($result['count'] != 1) {
-          BK_Utils::audit("$caseTypeId is not a valid case type id in " . __FILE__ . ' ' . __METHOD__ . "\n");
-          throw new Exception("$caseTypeId is not a valid case type id in " . __FILE__ . ' ' . __METHOD__ . "\n");
-        }
-        else {
-          BK_Utils::audit("OK");
-        }
-      }
-			$case_type = $result['values'][0];
-      BK_Utils::audit("Case type is " . print_r($case_type, TRUE));
-
-			BK_Utils::audit('xxxxxxxxxxxxx');
-			if (isset($case_type['description'])) {
-  			$description = $case_type['description'];
-			}
-			else {
-				$description = '';
-			}
-			BK_Utils::audit("Description is $description");
-      BK_Utils::audit("prefix is " . BK_Constants::STUDY_TEMPLATE_PREFIX);
-	
-			if (strpos($description, BK_Constants::STUDY_TEMPLATE_PREFIX) === FALSE) {
-
-				// BK_Utils::audit(__FUNCTION__ . print_r($objectRef, TRUE));
-
-
-    		# $new_case_type_id = BK_Temp::create_case_type_template( $objectRef);
-      	BK_Utils::audit(__FUNCTION__ . "creating CiviStudy case type template for $caseTypeId");
-    		$new_case_type_id = BK_Temp::create_case_type_template( $objectId);
-      	BK_Utils::audit(__FUNCTION__ . "creating CiviStudy case type mapping for $caseTypeId, $component_id");
-      	BK_Component::create_case_type_mapping($caseTypeId, $component_id);
-			}
-
-/*
-			const STUDY_TYPE_PREFIX = 'Study Type: ';
-			const STUDY_TEMPLATE_PREFIX = 'Template for studies of type #';
-*/
-
-
-    }
-  }
+  $new_case_type_id = $objectId;  
+  BK_Temp::create_contact_groups_for_study($new_case_type_id);
 }
 
 function _case_type_deleted($objectId) {
-  // $objectId represents the case type we have deleted
-  $caseTypeId = $objectId;
-
-  BK_Utils::audit("Deleting case type mapping for $caseTypeId");
-  BK_Component::delete_case_type_mapping($caseTypeId);
 }
 
 function _case_type_delete($objectId) {
-  // Delete the template associated with the case type
-  
-  $result = civicrm_api3('CaseType', 'get', array(
-    'sequential' => 1,
-    'id' => $objectId,
-  ));
-
-  if ($result['is_error']) {
-    throw new Exception("Error retrieving case type $caseTypeId " . __FILE__ . ' ' . __METHOD__ . "\n");
-  }
-  else {
-    if ($result['count'] != 1) {
-      throw new Exception("$caseTypeId is not a valid case type id in " . __FILE__ . ' ' . __METHOD__ . "\n");
-    }
-    else {
-    }
-  }
-
-  BK_Utils::audit(print_r($result, TRUE));
-  
-  $template_name = $result['values'][0]['name'] . '_template';
-
-  $result = civicrm_api3('CaseType', 'get', array(
-    'sequential' => 1,
-    'name' => $template_name,
-    'api.CaseType.delete' => 1,
-  ));
-  BK_Utils::audit(print_r($result, TRUE));
 }
-
-function _case_created($objectId, &$objectRef) {
-  // Called from _post
-
-	global $study_created_flag;
-  $caseId = $objectId;    // $objectId represents the case we have created
-
-  // Cases are always created via the admin backend, as "Add Study" or "Add Recruitment" 
-  // We may have come here via a json request, in which case we do not know from the url whether we're dealing with a case
-  // of type 'study' or one of 'recruitment'. 
-  // Luckily we can determine the component via the associated Case Type
-
-  $case_type_id = $objectRef->case_type_id;
-  $component_id = BK_Component::get_component_id_by_case_type_id($case_type_id);
-  $component_name = BK_Component::get_component_name_by_id($component_id);
-  BK_Utils::audit("case id and case_type_id are $caseId $case_type_id $component_id $component_name");
-
-  if ($component_name == BK_Constants::CIVIRECRUITMENT) {
-    BK_Utils::audit("creating CiviRecruitment case mapping for $caseId, $component_id");
-    BK_Component::create_case_mapping($caseId, $component_id);
-
-  }
-  else if ($component_name == BK_Constants::CIVISTUDY) {
-    $study_created_flag = TRUE;   // So when we later create a case type we know the case type is for a recruitment
-
-    BK_Utils::audit("creating CiviStudy case mapping for $caseId, $component_id");
-    BK_Component::create_case_mapping($caseId, $component_id);
-
-    //
-    // We also need to create a Case Type for the study, to be used in CiviRecruitment
-    //
-    BK_Utils::audit("creating CiviRecruitment case type for $caseId, $component_id");
-    $new_case_type_id = BK_Temp::create_study_case_type_in_recruitment ( $objectRef);
-
-
-/* Not sure if we need this  !!!! Shouldn't it be a case mapping????? Or will it be created automatically anyway???
-    BK_Utils::audit(__FUNCTION__ . "creating CiviRecruitment case type mapping for $new_case_type_id, $caseId, $component_id");
-    BK_Component::create_case_type_mapping ($new_case_type_id, $component_id);
-*/
-
-    /* We also want to create groups so we can create ACLs */
-
-    BK_Temp::create_contact_groups_for_study($new_case_type_id);
-  }
-}
-
-
-
-function _case_deleted($objectId) {
-  // $objectId represents the case we have deleted
-  $caseId = $objectId;
-
-  BK_Utils::audit("Deleting case mapping for $caseId");
-  BK_Component::delete_case_mapping($caseId);
-}
-
-
 
 function brisskit_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
   global $study_created_flag; // Set when we create a study
@@ -690,17 +425,6 @@ function brisskit_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
 			_case_type_deleted($objectId);
     }
   }
-  // When a user creates a study in CiviStudy, we will create an associated Case Type for CiviRecruitment
-  else if ($objectName=="Case") {
-    if ($op == 'create') {
-			BK_Utils::audit(__FUNCTION__ . print_r($objectRef, TRUE));
-			_case_created($objectId, $objectRef);
-    }
-    else if ($op == 'delete') {
-			_case_deleted($objectId);
-    }
-  }
-
   // The code from here is based on original drupal module
 	global $prev_stat_id;
 	if ($objectName=='Individual') {
@@ -712,10 +436,6 @@ function brisskit_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
 	if ($objectName=="GroupContact") {
 	}
 	
-  if (!BK_Component::is_recruitment()) {
-    return;
-  }
-
 	#when work flow has been triggered need to set the wf_trigger flag to 1
 	global $triggered;
 	if ($triggered) {
@@ -727,9 +447,6 @@ function brisskit_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
 #implement BRISSkit participant available to be contacted hook
 # 3.1. Automatically creates activities defined in the contact_participant ActivitySet of the civicase XML 
 function brisskit_participant_available($params, $activity_id) {
-  if (!BK_Component::is_recruitment()) {
-    return;
-  }
 
   // The code from here is based on original drupal module
 	#add activities related to contacting participant to case
@@ -748,10 +465,6 @@ function brisskit_participant_available($params, $activity_id) {
 
 #implement civi's civicrm_import hook (called following import of each individual)
 function brisskit_civicrm_import( $object, $usage, &$objectRef, &$params ) {
-  if (!BK_Component::is_recruitment()) {
-    return;
-  }
-
   // The code from here is based on original drupal module
 	require_once "api/v3/utils.php";
 	require_once "api/v3/Case.php";
@@ -782,7 +495,6 @@ function brisskit_civicrm_navigationMenu(&$params) {
   // Note that the name affects the url so must match the values in Case.xml
   //
   _add_menu($params, 'recruitment', 'Recruitment', 'Recruitments');
-  _add_menu($params, 'study', 'Study', 'Studies');
 }
 
 function _add_menu(&$params, $name, $label, $plural_label) {
@@ -989,50 +701,6 @@ function brisskit_civicrm_queryObjects(&$queryObjects, $type) {
   BK_Utils::audit ("queryObj hook");
   BK_Utils::audit ('qo:'.print_r($queryObjects, TRUE));
   BK_Utils::audit ('type:'.print_r($type, TRUE));
-
-}
-
-function brisskit_civicrm_pageRun(&$page) {
-  $pageName = $page->getVar('_name');
-  BK_Utils::audit ("pageRun hook $pageName");
-  BK_Utils::audit ('Page: ' . print_r($page, TRUE));
-
-  if ($pageName == 'CRM_Case_Page_DashBoard') {
-    $template = $page->getTemplate();   // Returns the Smarty object
-    BK_Utils::audit ('Template: ' . print_r($template, TRUE));
-    $cases_summary = $template->get_template_vars('casesSummary');
-    BK_Utils::audit ('Cases: ' . print_r($cases_summary, TRUE));
-
-    //
-    // Only include case types pertinent to CiviStudy or CiviRecruitment as applicable
-    // Never include the "template" case types
-    //
-
-    $case_types = $cases_summary['rows'];
-    $new_rows = array();
-
-    ### On a fresh install there won't be any case_types, so we check to avoid warnings on the front-end.
-    if ($case_types>0) {
-      foreach ($case_types as $case_type_name => $case_type_id) {
-        if ( preg_match("/ Template$/", $case_type_name, $matches)) {
-        }
-        else if (BK_Component::is_study() && preg_match("/^Study:/", $case_type_name, $matches) ) {
-        }
-        else if (BK_Component::is_recruitment() && !preg_match("/^Study:/", $case_type_name, $matches) ) {
-        }
-        else {
-          $new_rows[$case_type_name] = $case_type_id;
-        }
-      }
-    }
-
-    $cases_summary['rows'] = $new_rows;
-    $page->getTemplate()->assign('casesSummary', $cases_summary);
-  }
-}
-
-function brisskit_civicrm_aclWhereClause( $type, &$tables, &$whereTables, &$contactID, &$where ) {
-  BK_Utils::audit ("aclWhereClause hook type $type where $where");
 
 }
 

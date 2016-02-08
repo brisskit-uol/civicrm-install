@@ -6,6 +6,7 @@
  */
 require_once ("CRM/Brisskit/BK_Constants.php");
 require_once ("CRM/Brisskit/BK_Utils.php");
+require_once ("CRM/Brisskit/BK_Setup.php");
 class CRM_Brisskit_Upgrader extends CRM_Brisskit_Upgrader_Base {
 
   // By convention, functions that look like "function upgrade_NNNN()" are
@@ -16,32 +17,14 @@ class CRM_Brisskit_Upgrader extends CRM_Brisskit_Upgrader_Base {
    *
   */
   public function install() {
-    $this->executeSqlFile('sql/brisskit_install.sql');
-    BK_Utils::set_status("Database updated successfully");
-
-    require_once ("CRM/Brisskit/BK_Setup.php");
-    try {
-      BK_Utils::create_civi_option_value("activity_type", array("name" => BK_Constants::DATACOL_CONSENT, "label" =>BK_Constants::DATACOL_CONSENT, "is_active"=>1));
-      BK_Utils::create_civi_option_value("activity_type", array("name" => BK_Constants::TISSUE_CONSENT, "label" =>BK_Constants::TISSUE_CONSENT, "is_active"=>1));
-      BK_Utils::create_civi_option_value("activity_type", array("name" => BK_Constants::USEINFO_CONSENT, "label" => BK_Constants::USEINFO_CONSENT, "is_active"=>1));
-      BK_Utils::set_status("Options added successfully");
-    }
-    catch(Exception $ex) {
-      BK_Utils::set_status("Error creating option valuies in " . __FILE__ . ' ' . __METHOD__ . "\n" . $ex->getMessage(), 'error');
-    }
-
-    try {
-      BK_Setup::init_required_fields();
-      BK_Utils::set_status("Required fields added successfully");
-    }
-    catch(Exception $ex) {
-      BK_Utils::set_status("Error initializing requured fields in " . __FILE__ . ' ' . __METHOD__ . "\n" . $ex->getMessage(), 'error');
-    }
-
     _install();
   }
 
   public function enable() {
+    BK_Utils::audit ('Running brisskit_install.sql');
+    $this->executeSqlFile('sql/brisskit_install.sql');
+    BK_Utils::audit ('Sql finished');
+    BK_Utils::set_status("Database updated successfully");
     _enable();
   }
 
@@ -156,6 +139,24 @@ class CRM_Brisskit_Upgrader extends CRM_Brisskit_Upgrader_Base {
 function _install() {
   $message= "Install time!";
   BK_Utils::audit ($message);
+
+  try {
+    BK_Utils::create_civi_option_value("activity_type", array("name" => BK_Constants::DATACOL_CONSENT, "label" =>BK_Constants::DATACOL_CONSENT, "is_active"=>1));
+    BK_Utils::create_civi_option_value("activity_type", array("name" => BK_Constants::TISSUE_CONSENT, "label" =>BK_Constants::TISSUE_CONSENT, "is_active"=>1));
+    BK_Utils::create_civi_option_value("activity_type", array("name" => BK_Constants::USEINFO_CONSENT, "label" => BK_Constants::USEINFO_CONSENT, "is_active"=>1));
+    BK_Utils::set_status("Options added successfully");
+  }
+  catch(Exception $ex) {
+    BK_Utils::set_status("Error creating option values in " . __FILE__ . ' ' . __METHOD__ . "\n" . $ex->getMessage(), 'error');
+  }
+
+  try {
+    BK_Setup::init_required_fields();
+    BK_Utils::set_status("Required fields added successfully");
+  }
+  catch(Exception $ex) {
+    BK_Utils::set_status("Error initializing requured fields in " . __FILE__ . ' ' . __METHOD__ . "\n" . $ex->getMessage(), 'error');
+  }
 
   // 1. Add each group
   _create_groups ();
@@ -631,7 +632,7 @@ function _uninstall() {
   // Delete our custom fields and custom field groups, driven by Custom.xml
   _process_custom_groups_fields (BK_Constants::ACTION_DELETE);
   
-//Deleting must be done in reverse order to creation because we need to do lookups on roles and groups when deleting ACLs.
+  //Deleting must be done in reverse order to creation because we need to do lookups on roles and groups when deleting ACLs.
   BK_Utils::audit('1');
   _acl_update ('delete');
 
@@ -643,7 +644,7 @@ function _uninstall() {
   // Finally we can do the groups.  Load the groups from our XML file.
   $bk_acl_groups = BK_Utils::get_brisskit_xml("Groups.xml");
   $group_type =array();
-  $group_type[1]=1;
+  $group_type[1]=1; // FIXME - this isn't used. Why not?
 
   BK_Utils::audit('1');
   // Remove each group
@@ -842,6 +843,10 @@ function _update_custom_fields($custom_group_id, $custom_fields, $action) {
 function _enable() {
   $message= "Enable time!";
   BK_Utils::audit ($message);
+
+
+
+
   $bk_dir = dirname( __FILE__ ) . DIRECTORY_SEPARATOR;
 
   /* Force the xmlMenu hook to fire to add our routing.

@@ -839,5 +839,96 @@ static function is_triggered(&$params) {
     }
     $db->close();
   }
+
+
+  /*
+   *
+   * From the url it is often possible to obtain the case id we are working with.
+   *
+   * This could break between civi versions if they change the url formats.
+   * Ideally civi would have its own canonical form for GET and POST params - might
+   * be worth looking into - the paths look suspiciously like REST endpoints (sort of) so 
+   * there might be more structure than we've assumed. 
+   *
+   */
+  static function extract_case_id_from_uri ($uri) {
+    $uri = str_replace('&amp;', '&', $uri);
+
+    BK_Utils::audit("Entering function " . __FUNCTION__);
+    ### Just return if we're not passed a uri to work with
+    if (empty($uri)) {
+        return 0;
+    }
+
+    BK_Utils::audit("extr case id $uri");
+
+    ### Create an array from the uri
+    parse_str($uri, $query_parms);
+
+    ### Handle caseid and caseID
+    $query_parms = array_change_key_case($query_parms, CASE_LOWER);
+    BK_Utils::audit(print_r($query_parms,TRUE));
+
+    ### May not always exist, e.g. click Home->Civicrm
+
+
+
+    if (array_key_exists('/civicrm/index_php?q', $query_parms)) {
+      $query_path = $query_parms['/civicrm/index_php?q'];
+    }
+    else {
+      $needle = '/civicrm/index_php?q';    
+
+      $query_path = '';
+      foreach ($query_parms as $key => $value) {
+        // Check for strings ending with $needle
+        $start_pos = strlen($key) - strlen($needle);
+        // if (strpos($key, $needle, $start_pos) !== FALSE) {
+        if (strpos($key, $needle) !== FALSE) {
+          $query_path = $value;
+        }
+      }
+
+      if ($query_path == '') {
+        return 0;
+      }
+    }
+    
+
+    ### A mapping of paths from the query string to the correct parm holding the case id.
+    ### TODO hold elsewhere?
+    $map_query_path_case_parm = array (
+        'civicrm/contact/view/case'         => 'id',
+        'civicrm/ajax/activity'             => 'caseid',
+        'civicrm/ajax/globalrelationships'  => 'caseid',
+        'civicrm/ajax/caseroles'            => 'caseid',
+        'civicrm/case/activity'             => 'caseid',
+    );
+
+    BK_Utils::audit("#######$$$ $uri $query_path");
+
+// 2015-11-18 01:58:41 #########/civicrm/index.php?q=civicrm/case/activity&action=add&reset=1&cid=33&caseid=12&atype=2&snippet=json
+// 2015-11-18 01:58:43 #########/civicrm/index.php?q=civicrm/case/activity&snippet=4&type=Activity&subType=2&qfKey=277f73a765f891a7ecd6e99d093e6cc8_3338&cgcount=1
+
+    ### Finally, we can return the case id using the correct parm
+    if (array_key_exists($query_path, $map_query_path_case_parm)) {
+        $query_parms_key = $map_query_path_case_parm[$query_path];
+
+        ### Avoid 'undefined index' errors by checking key exists
+
+        if (array_key_exists($query_parms_key, $query_parms)) {
+            $case_id = $query_parms[$query_parms_key];
+        }
+        else {
+            $case_id = 0;
+        }
+    }
+    else {
+        $case_id = 0;
+    }
+
+    BK_Utils::audit("Caseid: $case_id");
+    return $case_id;
+  } 
 }
 ?>
