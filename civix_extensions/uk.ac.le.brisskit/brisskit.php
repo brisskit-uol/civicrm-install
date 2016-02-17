@@ -268,6 +268,37 @@ function brisskit_civicrm_buildForm($formName, &$form) {
   }
 }
 
+function _copy_family_id($contact_id_a, $contact_id_b, $params) {
+  try {
+    $contact_a = BK_Utils::get_contact_with_custom_values($contact_id_a);
+    BK_Utils::audit("zzzzzzzzz" . print_r($contact_a, TRUE));
+    $contact_b = BK_Utils::get_contact_with_custom_values($contact_id_b);
+    BK_Custom_Data::populate_custom_fields(BK_Custom_Data::genomics_fields(), $contact, "Genomics Data");
+
+    $custom_field_id = BK_Custom_Data::get_custom_field_id('family_id');
+    $family_id = $contact_a['custom_' . $custom_field_id .'_1'];
+    
+
+    BK_Utils::audit("$custom_field_id 'Contact', $contact_id_b, 'family_id', $family_id");
+    BK_Custom_Data::create_custom_value('Contact', $contact_id_b, 'family_id', $family_id);
+  }
+  catch(Exception $ex) {
+    BK_Utils::set_status($ex->getMessage(),"error");	
+  }
+}
+
+
+function _create_family_id($contact_id, $params) {
+  try {
+    $contact = BK_Utils::get_contact_with_custom_values($contact_id);
+    BK_Custom_Data::populate_custom_fields(BK_Custom_Data::genomics_fields(), $contact, "Genomics Data");
+    $family_id = BK_Core::pseudo_family($params);
+    BK_Custom_Data::create_custom_value('Contact', $contact_id, 'family_id', $family_id);
+  }
+  catch(Exception $ex) {
+    BK_Utils::set_status($ex->getMessage(),"error");	
+  }
+}
 
 /**
  * implement civi's civicrm_pre db write hook
@@ -326,16 +357,7 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
 
 	if ($objectName=="GroupContact" || $objectName=='Individual') {
     if ($op=="create") {
-      $contact_id = $id;
-      // When we first create a contact we need to assign a family id
-      try {
-				$family_id = BK_Core::pseudo_family($params);
-        BK_Custom_Data::create_custom_value('Contact', $contact_id, 'family_id', $family_id);
-				BK_Utils::set_status("Individual assigned to new family id: $family_id");
-      }
-      catch(Exception $ex) {
-        BK_Utils::set_status($ex->getMessage(),"error");	
-      }
+      // _create_family_id($id, $params); Not done in post
     }
 
 		#try/catch will produce a nice drupal style message if there is a problem
@@ -448,6 +470,20 @@ function brisskit_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
       BK_Core::log_status_if_required($objectId,$op,$prev_stat_id);
     }
 	}
+
+	if ($objectName=="GroupContact" || $objectName=='Individual') {
+    if ($op=="create") {
+      _create_family_id($objectId, array());
+    }
+  }
+
+	if ($objectName=="Relationship") {
+    if ($op=="create") {
+
+      BK_Utils::audit(print_r($objectRef, TRUE));
+      _copy_family_id($objectRef->contact_id_a, $objectRef->contact_id_b);
+    }
+  }
 	
 	if ($objectName=="GroupContact") {
 	}

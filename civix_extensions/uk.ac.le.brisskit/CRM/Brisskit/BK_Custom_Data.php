@@ -230,6 +230,8 @@ class BK_Custom_Data {
       $settings["custom_".CRM_Core_BAO_CustomField::getCustomFieldID( $value, $group )]=$key;
     }
 
+    BK_Utils::audit("Settings are : " . print_r ($settings, TRUE));
+
     // loop through each provided (usually POST) parameter looking for 'custom' fields
     // if they are custom insert a new value with the provided label (e.g. custom_5 also represented by brisskit_id)
     // also store the custom_ parameter with the label in the custom_fields global array so it can be used by set_custom_field
@@ -253,7 +255,7 @@ class BK_Custom_Data {
   static function set_custom_field($label, $value, &$params) {
     global $custom_fields;
 
-    BK_Utils::set_status(print_r($custom_fields), TRUE);
+    BK_Utils::audit("Custom fields are: " . print_r($custom_fields, TRUE));
 
     if (isset($custom_fields[$label])) {
       $field_name = $custom_fields[$label]; // e.g. brisskit_id;
@@ -263,6 +265,21 @@ class BK_Custom_Data {
       BK_Utils::set_status("$label is not a valid custom field in " . __FILE__ . " " . __FUNCTION__);
     }
   }
+
+
+  /* 
+    utility method containing human readable keys and names for custom  'genomics' fields in the database
+  */
+  static function genomics_fields() {
+    $settings = array(
+        "family_id"           => "Family ID",
+        "s_number"            => "S Number",
+        "nhs_number"          => "NHS Number",
+        "gel_participant_id"  => "Gel Participant ID",
+    );
+    return $settings;
+  }
+
 
   /* 
     utility method containing human readable keys and names for custom  'permission' fields in the database
@@ -471,19 +488,30 @@ class BK_Custom_Data {
     return array_shift($og['values']); 
   }
 
+  static function get_custom_field_id ($custom_field_name) {
+    $result = civicrm_api3('CustomField', 'get', array(
+      'sequential' => 1,
+      'name' => $custom_field_name,
+    ));
+    if (($result['count']==1) && ($result['is_error']==0) ) {
+      $custom_field_id = $result['values'][0]['id'];
+      return $custom_field_id;
+    }
+    return 0;
+  }
+
 
   /* 
     Create a custom value for a custom field, belonging to the specified entity
   */
   static function create_custom_value($entity_table, $entity_id, $custom_field_name, $custom_field_value) {
-    return;   //TODO
     /*
       1) Get the field column name
       2) Construct the API3 call
       3) run it
     */
 
-    BK_Utils::set_status("$entity_table, $entity_id, $custom_field_name, $custom_field_value");
+    BK_Utils::audit("tab id field val $entity_table, $entity_id, $custom_field_name, $custom_field_value");
 
     $result = civicrm_api3('CustomField', 'get', array(
       'sequential' => 1,
@@ -495,9 +523,12 @@ class BK_Custom_Data {
 
     $custom_col_name = 'custom_' . $custom_field_id; 
 
+
+    BK_Utils::audit("tab $entity_table, custom_filed_id $custom_field_id, val $custom_field_value, entity_id $entity_id");
+
     $result = civicrm_api3($entity_table, 'create', array(
         'sequential' => 1,
-        $custom_field_id => $custom_field_value,
+        $custom_col_name => $custom_field_value,
         'id' => $entity_id,
     ));
   }
