@@ -9,6 +9,46 @@
     background-image: -moz-linear-gradient(top, #ddd 1%, #ccf 15%) !important;
     background-image: linear-gradient(top, #ddd 1%, #ccf 15%) !important;
   }
+
+  /* The Modal (background) */
+  .modalsaj {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    padding-top: 100px; /* Location of the box */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+  }
+
+  /* modalsaj Content */
+  .modalsaj-content {
+    background-color: #fefefe;
+    margin: auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+  }
+
+  /* The Close Button */
+  .close {
+    color: #aaaaaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+  }
+
+  .close:hover,
+  .close:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
 </style>
 
 
@@ -40,11 +80,55 @@
   ];
     
   var bk_search_widget = ` 
+
     <div id="bk_search_widget">
-      <label for="bk_search_name">Enter SNumber : </label>
+      <!--<label for="bk_search_name">Enter SNumber : </label>
       <input type="text" name="bk_search_name" id="bk_search_name" />
-      <button type="button" id="bk_search_button">Populate name</button>
-      <a href="https://patientdemographicservicedev.xuhl-tr.nhs.uk/login.aspx" target="_blank">Register Patient</a>
+      <button type="button" id="bk_search_button">Populate name</button> -->     
+    </div>
+
+    <button type="button" id="myBtn">Search PMI</button> 
+    <a href="https://patientdemographicservicedev.xuhl-tr.nhs.uk/login.aspx" target="_blank">Register Patient</a>
+    <div id="myModal" class="modalsaj">
+      <!-- Modal content -->
+      <div class="modalsaj-content">
+        <span id="myModalClose" class="close">close</span>
+
+        <table style="width:100%">
+          <tr>
+	    <td colspan="4">
+            PMI Search. Enter any values and click on search.
+            </td> 
+          </tr>      
+          <tr>
+            <td width="25%">
+              <label for="bk_snumber">First Name : </label>
+              <input type="text" name="bk_snumber" id="bk_snumber" />
+            </td>
+            <td width="25%">
+              <label for="bk_snumber">Last Name : </label>
+              <input type="text" name="bk_snumber" id="bk_snumber" />
+            </td>
+            <td width="25%">
+              <label for="bk_snumber">SNumber : </label>
+              <input type="text" name="bk_snumber" id="bk_snumber" />
+            </td>
+            <td width="25%">
+              <label for="bk_snumber">Date of Birth : </label>
+              <input type="text" name="bk_snumber" id="bk_snumber" />
+            </td>
+           </tr>
+           <tr>
+            <td colspan="4">
+              <button type="button" id="mySearch">Search</button>      
+            </td>
+           </tr>
+        </table>
+
+      <div id="mySearchResultsDiv" style='height:250px; overflow:scroll;'>
+        <table style="width:100%" id="mySearchResults"></table>
+      </div>           
+      </div>
     </div>
   `;
 
@@ -63,10 +147,42 @@
       displayAdditionalPhoneFields(1); // Create one extra phone input block so total = 2
     }
     disableFormFields ();
+
+    jQuery('#myBtn').click(function () {
+            jQuery('#mySearchResults').empty();
+            jQuery("#mySearchResults > tbody").html("");
+            jQuery('#mySearchResultsDiv').scrollTop(0);           
+            jQuery('#myModal').css('display','block');
+    });
+
+    jQuery('#myModalClose').click(function () {
+            jQuery('#myModal').css('display','none');
+    });
+
+    jQuery('#mySearch').click(function () {
+            jQuery('#mySearchResults').empty();
+            jQuery("#mySearchResults > tbody").html("");
+            jQuery('#mySearchResultsDiv').scrollTop(0);
+                 
+            jQuery.ajax({
+                url:"http://www.h2ss.co.uk/h2ss/pmi?callback=jsonCallbackAll&snumber=all&surname=hgf",
+                dataType: 'jsonp' // Notice! JSONP <-- P (lowercase) 
+               });               
+     });
+
+     jQuery('#myPatient').live('click', function (e) {
+            jQuery.ajax({
+                url:"http://www.h2ss.co.uk/h2ss/pmi?callback=jsonCallback&snumber=" + jQuery(this).val() + "&surname=hgf",
+                dataType: 'jsonp' // Notice! JSONP <-- P (lowercase) 
+            });
+
+            jQuery('#myModal').css('display','none');          
+            e.stopPropagation();               
+     });
+
   });
 </script>
  
-
 
 <script>
 
@@ -89,6 +205,51 @@ function disableFormFields () {
   jQuery("input[data-crm-custom='Genomics_Data:NHS_Number']").attr('readonly', 'readonly'); 
   jQuery("input[data-crm-custom='Genomics_Data:S_Number']").attr('readonly', 'readonly'); 
 
+}
+
+
+
+function jsonCallbackAll(data)
+{
+    //alert('m');
+    jQuery('#mySearchResults').empty();
+    jQuery("#mySearchResults > tbody").html("");
+    jQuery('#mySearchResultsDiv').scrollTop(0);
+
+    var tr;
+
+    tr = jQuery('<tr/>');
+    tr.append("<td>TITLE</td>");
+    tr.append("<td>FORENAMES</td>");
+    tr.append("<td>SURNAME</td>");
+    tr.append("<td>SEX</td>");
+    tr.append("<td>DATE OF BIRTH</td>");
+    tr.append("<td>NHS NUMBER</td>");
+    tr.append("<td>SYSTEM NUMBER</td>");           
+    tr.append("<td>ADDRESS</td>");
+    tr.append("<td>POSTCODE</td>");
+    tr.append("<td>SELECT</td>");
+    jQuery('#mySearchResults').append(tr);
+
+    tr = "";
+   
+    jQuery.each(data, function(idx, obj) {      
+            tr = jQuery('<tr/>');
+            tr.append("<td>" + obj.title + "</td>");
+            tr.append("<td>" + obj.forenames + "</td>");
+            tr.append("<td>" + obj.surname + "</td>");
+            tr.append("<td>" + obj.sex + "</td>");
+            tr.append("<td>" + obj.day + "/" + obj.month + "/" + obj.year + "</td>");
+            tr.append("<td>" + obj.nhs_number + "</td>");
+            tr.append("<td>" + obj.system_number + "</td>");           
+            tr.append("<td>" + obj.address_line_1 + ", " + obj.address_line_2 + ", " + obj.address_line_3 + "</td>");
+            tr.append("<td>" + obj.postcode + "</td>");
+            tr.append("<td><button type='button' id='myPatient' name='myPatient' value='"+ obj.system_number +"'>Select</button></td>");        
+            jQuery('#mySearchResults').append(tr);   
+    });
+
+    jQuery('#mySearchResultsDiv').scrollTop(0);
+   
 }
 
 function jsonCallback(data)
@@ -185,7 +346,8 @@ function jsonCallback(data)
   
   if (data.day != '' && data.month != '' && data.year != '')
   {
-    jQuery('#birth_date_display').val(data.day + '/' + data.month + '/' + data.year);   
+    jQuery('#birth_date_display').val(data.day + '/' + data.month + '/' + data.year);  
+    jQuery('#birth_date').val(data.day + '/' + data.month + '/' + data.year);  
   }
   
   jQuery("input[data-crm-custom='Genomics_Data:Family_ID']").val('');
