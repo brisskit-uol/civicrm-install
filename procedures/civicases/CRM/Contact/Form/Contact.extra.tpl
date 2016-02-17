@@ -17,7 +17,7 @@
     'first_name',
     'last_name',
     'prefix_id',
-    'select2-chosen-1',
+    'select2-choice',
     'is_deceased',
     'job_title',
     'phone_1_phone',
@@ -30,8 +30,8 @@
     'civicrm_gender_Male_2',
     'civicrm_gender_Transgender_3',
     'birth_date',
-    'custom_13_-1',
-    'custom_14_-1'
+    'custom_11_-1',
+    'custom_12_-1'
   ];
 
   var bk_search_widget = ` 
@@ -39,7 +39,7 @@
       <label for="bk_search_name">Enter SNumber : </label>
       <input type="text" name="bk_search_name" id="bk_search_name" />
       <button type="button" id="bk_search_button">Populate name</button>
-      <a href="https://patientdemographicservicedev.xuhl-tr.nhs.uk/login.aspx">Register Patient</a>
+      <a href="https://patientdemographicservicedev.xuhl-tr.nhs.uk/login.aspx" target="_blank">Register Patient</a>
     </div>
   `;
 
@@ -60,7 +60,7 @@
     disableFormFields ();
   });
 </script>
-
+ 
 
 
 <script>
@@ -90,7 +90,8 @@ function jsonCallback(data)
   jQuery('#first_name').val('');
   jQuery('#last_name').val('');
   jQuery('#prefix_id option[value=0]').attr('selected','selected');
-  jQuery('#select2-chosen-1').html('');
+  jQuery('#select2-choice').html('');
+  jQuery('#select2-chosen-3').text('');
   jQuery('#is_deceased').attr('checked', false);
   jQuery('#job_title').val('');
   jQuery('#phone_1_phone').val('');
@@ -103,8 +104,8 @@ function jsonCallback(data)
   jQuery('#civicrm_gender_Male_2').attr('checked', false);  
   jQuery('#civicrm_gender_Transgender_3').attr('checked', false);
   jQuery('#birth_date').val('');
-  jQuery('#custom_13_-1').val('');
-  jQuery('#custom_14_-1').val('');
+  jQuery('#custom_11_-1').val('');
+  jQuery('#custom_12_-1').val('');
     
   // populate fields
   jQuery('#first_name').val(data.forenames);
@@ -113,27 +114,27 @@ function jsonCallback(data)
   if (data.title == 'MRS')
   {
     jQuery('#prefix_id option[value=1]').attr('selected','selected');
-    jQuery('#select2-chosen-1').html('Mrs.');
+    jQuery('#select2-chosen-3').text('Mrs.');
   }
   if (data.title == 'MISS')
   {
     jQuery('#prefix_id option[value=2]').attr('selected','selected');
-    jQuery('#select2-chosen-1').html('Ms.');
+    jQuery('#select2-chosen-3').text('Ms.');
   }
   if (data.title == 'MR')
   {
     jQuery('#prefix_id option[value=3]').attr('selected','selected');
-    jQuery('#select2-chosen-1').html('Mr.');
+    jQuery('#select2-chosen-3').text('Mr.');
   }
   if (data.title == 'MSTR')
   {
     jQuery('#prefix_id option[value=3]').attr('selected','selected');
-    jQuery('#select2-chosen-1').html('Mr.');
+    jQuery('#select2-chosen-3').text('Mr.');
   } 
   if (data.title == 'DR')
   {
     jQuery('#prefix_id option[value=4]').attr('selected','selected');
-    jQuery('#select2-chosen-1').html('Dr.');
+    jQuery('#select2-chosen-3').text('Dr.');
   }
   
   if (data.deceased == '0')
@@ -176,8 +177,8 @@ function jsonCallback(data)
     jQuery('#birth_date_display').val(data.day + '/' + data.month + '/' + data.year);   
   }
   
-  jQuery('#custom_13_-1').val(data.system_number);
-  jQuery('#custom_14_-1').val(data.nhs_number);
+  jQuery('#custom_11_-1').val(data.system_number);
+  jQuery('#custom_12_-1').val(data.nhs_number);
   
 }
 

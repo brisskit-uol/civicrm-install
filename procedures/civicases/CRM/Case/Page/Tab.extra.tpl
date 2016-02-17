@@ -1,7 +1,5 @@
 {literal}
-
 <!-- NHS standard banner for patient details -->
-
 <style>
   #bk_contact_name_block {
     width: 100%;
@@ -11,7 +9,8 @@
  
 
 <script>
-	
+
+
     function GetUrlValue(VarSearch){
     var SearchString = window.location.search.substring(1);
     var VariableArray = SearchString.split('&');
@@ -23,9 +22,10 @@
     }
     }
 
-   var bk_contact_name_block = `
-    <!-- CRM/Contact/Page/View/Summary.extra.tpl -->
-    <div width="100%" id="bk_contact_name_block" style="background-color: green; padding-top: 20px; padding-bottom: 10px;">
+
+  var bk_contact_name_block = `
+    <!-- CRM/Case/Page/Tab.extra.tpl -->
+    <div width="100%" id="bk_contact_name_block" style="background-color: green; padding-top: 10px; padding-bottom: 10px;">
       <!--This is some content from CRM/Contact/Page/View/Summary.extra.tpl-->
 
 <table style="width:100%">
@@ -59,7 +59,7 @@
       //alert("*" + contact_id + "*");
 
       
-      jQuery('#contactname-block').html(bk_contact_name_block);
+      jQuery('#page-title').html(bk_contact_name_block);
 
 
       
@@ -81,25 +81,25 @@
       "contact_id": contact_id
     }).done(function(result) {
         //alert(result.values[0].custom_10);
-        //jQuery('#contactname-block').append('[Family ID : ' + result.values[0].custom_10 + '] ');
+        //jQuery('#page-title').append('[Family ID : ' + result.values[0].custom_10 + '] ');
         //alert(result.values[0].custom_11);
-        //jQuery('#contactname-block').append('[S Number : ' + result.values[0].custom_11 + '] ');
+        //jQuery('#page-title').append('[S Number : ' + result.values[0].custom_11 + '] ');
         //alert(result.values[0].custom_12);
-        //jQuery('#contactname-block').append('[NHS Number : ' + result.values[0].custom_12 + '] ');
+        //jQuery('#page-title').append('[NHS Number : ' + result.values[0].custom_12 + '] ');
 
         //alert(result.values[0].custom_13);
-        //jQuery('#contactname-block').append('[Gel Participant ID : ' + result.values[0].custom_13 + '] ');
+        //jQuery('#page-title').append('[Gel Participant ID : ' + result.values[0].custom_13 + '] ');
         
         //alert(result.values[0].custom_13); 
-        //jQuery('#contactname-block').append('[prefix_id : ' + result.values[0].prefix_id + '] '); // 1- Mrs 2 - Ms 3 - Mr 4 - Dr
+        //jQuery('#page-title').append('[prefix_id : ' + result.values[0].prefix_id + '] '); // 1- Mrs 2 - Ms 3 - Mr 4 - Dr
 	//alert(result.values[0].custom_13);
-        //jQuery('#contactname-block').append('[display_name : ' + result.values[0].display_name + '] ');
+        //jQuery('#page-title').append('[display_name : ' + result.values[0].display_name + '] ');
 	//alert(result.values[0].custom_13);
-        //jQuery('#contactname-block').append('[gender : ' + result.values[0].gender + '] ');
+        //jQuery('#page-title').append('[gender : ' + result.values[0].gender + '] ');
 	//alert(result.values[0].custom_13);
-        //jQuery('#contactname-block').append('[is_deceased : ' + result.values[0].is_deceased + '] ');
+        //jQuery('#page-title').append('[is_deceased : ' + result.values[0].is_deceased + '] ');
         //alert(result.values[0].custom_13);
-        //jQuery('#contactname-block').append('[birth_date : ' + result.values[0].birth_date + '] ');
+        //jQuery('#page-title').append('[birth_date : ' + result.values[0].birth_date + '] ');
 
 if (result.values[0].custom_12 != null) { jQuery('#p_custom_12').text('NHS No. ' + result.values[0].custom_12); }
 if (result.values[0].birth_date != null) { jQuery('#p_birth_date').text('Born. ' + result.values[0].birth_date); }
@@ -126,7 +126,8 @@ if (result.values[0].is_deceased != null && result.values[0].is_deceased == '1')
 
     }
   });
-
 </script>
 
+
 {/literal}
+
