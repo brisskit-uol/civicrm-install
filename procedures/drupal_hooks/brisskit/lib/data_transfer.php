@@ -30,6 +30,7 @@ require_once "integration.php";
 require_once BK_EXTENSIONS_DIR . "/../../../brisskit_civicrm.settings.php";
 require_once BK_EXTENSIONS_DIR . "/uk.ac.le.brisskit/CRM/Brisskit/BK_Constants.php";
 require_once BK_EXTENSIONS_DIR . "/uk.ac.le.brisskit/CRM/Brisskit/BK_Utils.php";
+require_once BK_EXTENSIONS_DIR . "/uk.ac.le.brisskit/CRM/Brisskit/BK_Custom_Data.php";
 
 #am I already running?
 $cmd    =    'ps aux | grep "data_transfer.php" | grep -v "grep" | wc -l';
@@ -98,8 +99,8 @@ function get_scheduled_dt_activity_info() {
 	require_once "api/v3/utils.php";
 	require_once "CRM/Case/BAO/Case.php";
 
-	$atid = BK_Utils::get_option_group_value("activity_type", BK_Constants::ACTIVITY_DATA_TRANSFER);
-	$asid = BK_Utils::get_option_group_value("activity_status", BK_Constants::ACT_STATUS_SCHEDULED);
+	$atid = BK_Custom_Data::get_option_group_value("activity_type", BK_Constants::ACTIVITY_DATA_TRANSFER);
+	$asid = BK_Custom_Data::get_option_group_value("activity_status", BK_Constants::ACT_STATUS_SCHEDULED);
 	BK_Utils::audit("atid:$atid, asid:$asid");
 	$params = array('activity_type_id'=>$atid, 'status_id'=>$asid, 'is_deleted' => '0');
 

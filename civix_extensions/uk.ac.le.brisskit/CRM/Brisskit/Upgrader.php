@@ -1,5 +1,26 @@
 <?php
 
+require_once 'CRM/Brisskit/BK_Custom_Data.php';
+
+
+function _rebuild_menus() {
+  mysql_query("TRUNCATE TABLE civicrm_cache");
+  if(mysql_error())
+  {
+    throw new Exception("Error truncating civicrm_cache: ".mysql_error());
+  }
+
+  /* Force the xmlMenu hook to fire to add our routing.
+     This is the same as hitting the /menu/rebuild&reset=1 URL.
+  */
+  try {
+    $result = civicrm_api3('System', 'flush');
+  }
+  catch(Exception $ex) {
+    BK_Utils::set_status("Warning: could not flush in " . __FILE__ . ' ' . __METHOD__ . "\n" . $ex->getMessage(), 'error');
+  }
+}
+
 
 /**
  * Collection of upgrade steps.
@@ -26,6 +47,7 @@ class CRM_Brisskit_Upgrader extends CRM_Brisskit_Upgrader_Base {
     BK_Utils::audit ('Sql finished');
     BK_Utils::set_status("Database updated successfully");
     _enable();
+    _rebuild_menus();
   }
 
   public function disable() {
@@ -141,9 +163,9 @@ function _install() {
   BK_Utils::audit ($message);
 
   try {
-    BK_Utils::create_civi_option_value("activity_type", array("name" => BK_Constants::DATACOL_CONSENT, "label" =>BK_Constants::DATACOL_CONSENT, "is_active"=>1));
-    BK_Utils::create_civi_option_value("activity_type", array("name" => BK_Constants::TISSUE_CONSENT, "label" =>BK_Constants::TISSUE_CONSENT, "is_active"=>1));
-    BK_Utils::create_civi_option_value("activity_type", array("name" => BK_Constants::USEINFO_CONSENT, "label" => BK_Constants::USEINFO_CONSENT, "is_active"=>1));
+    BK_Custom_Data::create_civi_option_value("activity_type", array("name" => BK_Constants::DATACOL_CONSENT, "label" =>BK_Constants::DATACOL_CONSENT, "is_active"=>1));
+    BK_Custom_Data::create_civi_option_value("activity_type", array("name" => BK_Constants::TISSUE_CONSENT, "label" =>BK_Constants::TISSUE_CONSENT, "is_active"=>1));
+    BK_Custom_Data::create_civi_option_value("activity_type", array("name" => BK_Constants::USEINFO_CONSENT, "label" => BK_Constants::USEINFO_CONSENT, "is_active"=>1));
     BK_Utils::set_status("Options added successfully");
   }
   catch(Exception $ex) {
@@ -515,9 +537,7 @@ function _acl_role_delete ($entity_id, $value) {
     'acl_role_id' => $value,
   ));
   BK_Utils::audit ("++++ remove AclRole val $value ent id $entity_id result:".print_r($result, TRUE));
-  $result = civicrm_api3('System', 'flush', array(
-  'sequential' => 1,
-  ));
+  _rebuild_menus();
 }
 
 /**
@@ -849,12 +869,6 @@ function _enable() {
 
   $bk_dir = dirname( __FILE__ ) . DIRECTORY_SEPARATOR;
 
-  /* Force the xmlMenu hook to fire to add our routing.
-     This is the same as hitting the /menu/rebuild&reset=1 URL.
-  */
-  $result = civicrm_api3('System', 'flush', array(
-    'sequential' => 1,
-  ));
 
   //Set our custom PHP dir
   $params = array('version' => 3,

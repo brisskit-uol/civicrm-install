@@ -4,6 +4,7 @@ require_once 'brisskit.civix.php';
 require_once 'CRM/Brisskit/BK_Constants.php';
 require_once 'CRM/Brisskit/BK_Utils.php';
 require_once 'CRM/Brisskit/BK_Temp.php';
+require_once 'CRM/Brisskit/BK_Custom_Data.php';
 
 /**
  * Implements hook_civicrm_config().
@@ -11,7 +12,7 @@ require_once 'CRM/Brisskit/BK_Temp.php';
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_config
  */
 function brisskit_civicrm_config(&$config) {
-  BK_Utils::audit("_brisskit_civix_civicrm_config");
+  BK_Utils::audit("_brisskit_civix_civicrm_config" . print_r($config, TRUE));
 
   $our_hooks_dir = dirname( __FILE__ ) . DIRECTORY_SEPARATOR . 'our_hooks/';
   $include_path = $our_hooks_dir . PATH_SEPARATOR . get_include_path( );
@@ -286,6 +287,7 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
     if ($op==BK_Constants::ACTION_CREATE) {
 
       BK_Utils::audit("Is recruitment and creating - true");
+      BK_Utils::audit("Parames are " . print_r($params, TRUE));
 
       $contactId = $params['client_id'][0];
       $case_type_id = $params['case_type_id'];
@@ -293,7 +295,7 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
       // Currently we just use the built-in caseCount function.  Future versions may check participant status/activities completed before
       // setting this count.
       BK_Utils::audit("Before setting recruitment count");
-      $result = BK_Utils::set_recruitment_count ($contactId, CRM_Case_BAO_Case::caseCount($contactId, TRUE)+1);
+      $result = BK_Custom_Data::set_recruitment_count ($contactId, CRM_Case_BAO_Case::caseCount($contactId, TRUE)+1);
       BK_Utils::audit("After setting recruitment count");
 
       BK_Temp::add_patient_to_group ($contactId, $case_type_id);
@@ -321,7 +323,21 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
 	# check if object is Individual or GroupContact
 
 	#2. When the participant is saved the brisskit extension is triggered
+
 	if ($objectName=="GroupContact" || $objectName=='Individual') {
+    if ($op=="create") {
+      $contact_id = $id;
+      // When we first create a contact we need to assign a family id
+      try {
+				$family_id = BK_Core::pseudo_family($params);
+        BK_Custom_Data::create_custom_value('Contact', $contact_id, 'family_id', $family_id);
+				BK_Utils::set_status("Individual assigned to new family id: $family_id");
+      }
+      catch(Exception $ex) {
+        BK_Utils::set_status($ex->getMessage(),"error");	
+      }
+    }
+
 		#try/catch will produce a nice drupal style message if there is a problem
 		try {
 			#check whether contact has permission or not
@@ -335,7 +351,7 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
 			}
 			if ($op=="edit") {
 				 ###axa20151207 fix wsod caused by calling get_contact_with_custom_values() without class prefix BK_Utils::
-                                 $contact = BK_Utils::get_contact_with_custom_values($params['contact_id']);
+         $contact = BK_Utils::get_contact_with_custom_values($params['contact_id']);
 				 $prev_stat_id = isset($contact['status']) ? $contact['status'] : null;
 			}
 			
@@ -354,7 +370,7 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
 
 		try {
 			#check if activity has already had workflow triggered
-			if (BK_Utils::is_triggered($params)) return;
+			if (BK_Custom_Data::is_triggered($params)) return;
 			
 			#check if contact has been added to case type previously (result of 'Open Case' activity)
 			$case_type = BK_Core::is_added_to_duplicate_case($op, $_POST, $params);
@@ -381,11 +397,11 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
 			if (BK_Core::is_consent_level_accepted($params)) {
 				#check that the ActivityType is part of the case definition if not exit hook
 				$activity_type = BK_Utils::get_activity_type_name($params['activity_type_id']);
-                                #Tell the user whats happened
+        #Tell the user whats happened
 				if (!BK_Core::case_allows_activity($params['case_id'], $activity_type)) {
-                                  BK_Utils::set_status("Case does not allow this activity");
-                                  return;
-                                }
+          BK_Utils::set_status("Case does not allow this activity");
+          return;
+        }
 				BK_Utils::set_status("'$activity_type' was Accepted");
 				
 				#invoke the BRISSkit 'consent_success' hook
@@ -455,7 +471,7 @@ function brisskit_participant_available($params, $activity_id) {
 	if (BK_Core::add_activity_set_to_case($params['case_id'],"contact_participant",$params['source_contact_id'])) {
 		$case_id = $params['case_id'];
 		$case_type = BK_Utils::get_case_type($case_id);
-		BK_Core::set_contact_status_via_case($case_id, "In study","Status changed to 'In study' ($case_type) when availability confirmed.");
+		BK_Utils::set_contact_status_via_case($case_id, "In study","Status changed to 'In study' ($case_type) when availability confirmed.");
 
 		BK_Utils::set_status("Activities now scheduled to contact potential participant re. study enrolment");
 		BK_Utils::set_status("Participant status changed to 'In study'");
@@ -471,7 +487,7 @@ function brisskit_civicrm_import( $object, $usage, &$objectRef, &$params ) {
 	
 	#determine if an initial study has been supplied in the import fields and if so add the participant to that initial study
 	if (BK_Core::is_participant_in_initial_study($params)) {
-		BK_Utils::set_custom_field("permission_given",1,$params);
+		BK_Custom_Data::set_custom_field("permission_given",1,$params);
 		BK_Core::add_participant_to_initial_study($params);
 	}
 }

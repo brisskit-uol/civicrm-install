@@ -29,11 +29,16 @@
     'civicrm_gender_Female_1',
     'civicrm_gender_Male_2',
     'civicrm_gender_Transgender_3',
-    'birth_date',
-    'custom_11_-1',
-    'custom_12_-1'
+    'birth_date'
   ];
 
+  var jsonFieldsCustomIds = [
+    'Genomics_Data:Family_ID',
+    'Genomics_Data:Gel_Participant_ID',
+    'Genomics_Data:S_Number',
+    'Genomics_Data:NHS_Number'
+  ];
+    
   var bk_search_widget = ` 
     <div id="bk_search_widget">
       <label for="bk_search_name">Enter SNumber : </label>
@@ -80,6 +85,10 @@ function disableFormFields () {
     var fieldId = jsonFieldIds[i];
     jQuery('#' + fieldId).attr('readonly', 'readonly'); 
   }
+  
+  jQuery("input[data-crm-custom='Genomics_Data:NHS_Number']").attr('readonly', 'readonly'); 
+  jQuery("input[data-crm-custom='Genomics_Data:S_Number']").attr('readonly', 'readonly'); 
+
 }
 
 function jsonCallback(data)
@@ -104,9 +113,11 @@ function jsonCallback(data)
   jQuery('#civicrm_gender_Male_2').attr('checked', false);  
   jQuery('#civicrm_gender_Transgender_3').attr('checked', false);
   jQuery('#birth_date').val('');
-  jQuery('#custom_11_-1').val('');
-  jQuery('#custom_12_-1').val('');
-    
+  for (var i in jsonFieldsCustomIds) {
+    var fieldId = jsonFieldsCustomIds[i];
+    jQuery("input[data-crm-custom=" + fieldId + "]").val('');
+  }
+
   // populate fields
   jQuery('#first_name').val(data.forenames);
   jQuery('#last_name').val(data.surname);
@@ -177,9 +188,11 @@ function jsonCallback(data)
     jQuery('#birth_date_display').val(data.day + '/' + data.month + '/' + data.year);   
   }
   
-  jQuery('#custom_11_-1').val(data.system_number);
-  jQuery('#custom_12_-1').val(data.nhs_number);
-  
+  jQuery("input[data-crm-custom='Genomics_Data:Family_ID']").val('');
+  jQuery("input[data-crm-custom='Genomics_Data:Gel_Participant_ID']").val('');
+  jQuery("input[data-crm-custom='Genomics_Data:S_Number']").val(data.system_number);
+  jQuery("input[data-crm-custom='Genomics_Data:NHS_Number']").val(data.nhs_number);
+
 }
 
 </script>

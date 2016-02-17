@@ -3,6 +3,7 @@
 
 include_once("BK_Constants.php");
 include_once("BK_Utils.php");
+include_once("BK_Custom_Data.php");
 include_once("BK_ID.php");
 
 class BK_Core {
@@ -15,8 +16,8 @@ static function is_participant_available($params) {
 	require_once "api/v3/Contact.php";
 	
 	#determine required activity type and status values (e.g. ids)
-	$contact_check_activity = BK_Utils::get_option_group_value("activity_type", BK_Constants::ACTIVITY_CHECK_STATUS);
-	$contact_complete_status = BK_Utils::get_option_group_value("activity_status", BK_Constants::ACT_STATUS_COMPLETED); 
+	$contact_check_activity = BK_Custom_Data::get_option_group_value("activity_type", BK_Constants::ACTIVITY_CHECK_STATUS);
+	$contact_complete_status = BK_Custom_Data::get_option_group_value("activity_status", BK_Constants::ACT_STATUS_COMPLETED); 
 	
 	#check the current activity type is the 'Check participant status' activity
 	if ($params['activity_type_id']==$contact_check_activity) {
@@ -25,9 +26,9 @@ static function is_participant_available($params) {
 			#then get contact associated with case
 			$contact = BK_Utils::get_case_contact_with_custom_values($params['case_id']);
 			#populate contact with known human readable custom fields
-			self::populate_custom_fields(status_fields(),$contact,"Participant Status");
+			BK_Custom_Data::populate_custom_fields(BK_Custom_Data::status_fields(),$contact,"Participant Status");
 			
-			$contact_available_status = BK_Utils::get_option_group_value("current_status_12345", BK_Constants::CONTACT_STATUS_AVAILABLE); 
+			$contact_available_status = BK_Custom_Data::get_option_group_value("current_status_12345", BK_Constants::CONTACT_STATUS_AVAILABLE); 
 			#result is true if the contact status is 'Available'
 			if ($contact['status']==$contact_available_status) {
 				return true;
@@ -46,14 +47,14 @@ static function is_participant_available($params) {
 static function log_status_if_required($contact_id, $op, $prev_stat_id=null) {
 	$contact = BK_Utils::get_contact_with_custom_values($contact_id);
 	$latest_stat_id = isset($contact['status']) ? $contact['status'] : null;
-	$latest_stat_name = BK_Utils::get_option_group_name("current_status_12345",$latest_stat_id);
+	$latest_stat_name = BK_Custom_Data::get_option_group_name("current_status_12345",$latest_stat_id);
 	if ($op=="create") {
-		BK_Utils::set_contact_status($contact, null,  "Status initially set to '".$latest_stat_name."'",$latest_stat_id);
+		BK_Custom_Data::set_contact_status($contact, null,  "Status initially set to '".$latest_stat_name."'",$latest_stat_id);
 	}
 	else if ($op=="edit") {
  		if ($prev_stat_id != $latest_stat_id) {
 			$status_name = get_option_group_name("current_status_12345",$contact['status']);
-			BK_Utils::set_contact_status($contact, null,  "Status changed to '".$latest_stat_name."'", $latest_stat_id);
+			BK_Custom_Data::set_contact_status($contact, null,  "Status changed to '".$latest_stat_name."'", $latest_stat_id);
 		}
 	}
 }
@@ -61,12 +62,12 @@ static function log_status_if_required($contact_id, $op, $prev_stat_id=null) {
 #determine if participant has replied positively in this activity
 static function is_participant_reply_positive($params) {
 	#determine required activity type value (e.g. id)
-	$contact_replied_activity = BK_Utils::get_option_group_value("activity_type", BK_Constants::ACTIVITY_POSITIVE_REPLY);
+	$contact_replied_activity = BK_Custom_Data::get_option_group_value("activity_type", BK_Constants::ACTIVITY_POSITIVE_REPLY);
 	
 	#check the current activity type is the 'Positive reply' activity
 	if ($params['activity_type_id']==$contact_replied_activity) {
 		#determine required activity status value (e.g. id)
-		$contact_complete_status = BK_Utils::get_option_group_value("activity_status", BK_Constants::ACT_STATUS_COMPLETED); 
+		$contact_complete_status = BK_Custom_Data::get_option_group_value("activity_status", BK_Constants::ACT_STATUS_COMPLETED); 
 
 		#result is true if current activity status is 'Completed'
 		if ($params['status_id']==$contact_complete_status) {
@@ -82,7 +83,7 @@ static function is_participant_reply_positive($params) {
 #determine if consent has been given in this activity
 static function is_consent_level_accepted($params) {
 	#determine required activity status value (e.g. id)
-	$act_accepted_status = BK_Utils::get_option_group_value("activity_status", BK_Constants::ACT_STATUS_ACCEPTED); 
+	$act_accepted_status = BK_Custom_Data::get_option_group_value("activity_status", BK_Constants::ACT_STATUS_ACCEPTED); 
 	
 	#result is only true if status is 'Accepted'
 	if (isset($params['status_id'])) {
@@ -99,7 +100,7 @@ static function is_consent_level_accepted($params) {
 #determines if permission was given to contact participant
 # 3. The extension determines if permission has been set to yes (1) 
 static function is_permission_given_to_contact(&$params) {
-	BK_Utils::populate_custom_fields(BK_Utils::permission_fields(),$params,"Permission");
+	BK_Custom_Data::populate_custom_fields(BK_Custom_Data::permission_fields(),$params,"Permission");
 
 	if (isset($params['permission_given'])) {
 		if ($params['permission_given']=="1") {
@@ -215,7 +216,7 @@ static function add_activity_set_to_case($case_id, $activity_set, $creator_id) {
 #determine if an activity type is already present in a case
 static function is_activity_type_present($case_id, $activity_type,$reqd_status) {
 	require_once "api/v3/Activity.php";
-	$at_id = BK_Utils::get_option_group_value('activity_type',$activity_type);
+	$at_id = BK_Custom_Data::get_option_group_value('activity_type',$activity_type);
 	
 	$count = self::count_activities_in_case($case_id,$activity_type);
 	
@@ -244,8 +245,8 @@ static function is_participant_in_initial_study(&$params) {
 	foreach($import_fields as $ifield) {
 		$fields[$ifield->_name]=$ifield->_value;
 	}
-	BK_Utils::populate_custom_fields(BK_Utils::status_fields(),$fields, "Participant Status");
-	BK_Utils::populate_custom_fields(BK_Utils::permission_fields(),$fields, "Permission");
+	BK_Custom_Data::populate_custom_fields(BK_Custom_Data::status_fields(),$fields, "Participant Status");
+	BK_Custom_Data::populate_custom_fields(BK_Custom_Data::permission_fields(),$fields, "Permission");
 	
 	if (isset($fields['study'])) {
 		$study = $fields['study'];
@@ -272,9 +273,20 @@ static function add_participant_to_initial_study($params) {
 static function pseudo_individual(&$params) {
 	$bkid = BK_ID::make_brisskit_id();
 
-	BK_Utils::set_custom_field('brisskit_id',$bkid, $params);
+	BK_Custom_Data::set_custom_field('brisskit_id',$bkid, $params);
 	$date = new DateTime();
-	BK_Utils::set_custom_field('date_given',$date->format('Y-m-d'),$params);
+	BK_Custom_Data::set_custom_field('date_given',$date->format('Y-m-d'),$params);
+	return $bkid;
+}
+
+/* 
+  Create and return a pseudo-anonymous family ID for a contact.
+  This may be overriden later if required, and will automatically be overriden when a relationship is created between 2 contacts
+*/ 
+static function pseudo_family(&$params) {
+	$bkid = BK_ID::make_brisskit_id(TRUE);  // TRUE => family, not individual
+
+	BK_Custom_Data::set_custom_field('family_id',$bkid, $params);
 	return $bkid;
 }
 
@@ -307,12 +319,12 @@ static function is_added_to_duplicate_case($op, $post, $params) {
 	if (!$op == "create") return; #return if not creating a new activity
 	
 	if (isset($params['activity_type_id'])) {
-		$opencase_id = BK_Utils::get_option_group_value("activity_type", BK_Constants::ACTIVITY_OPEN_CASE);
+		$opencase_id = BK_Custom_Data::get_option_group_value("activity_type", BK_Constants::ACTIVITY_OPEN_CASE);
 		
 		#is this an 'Open Case' activity?
 		if ($opencase_id == $params['activity_type_id']) {
 			$case_type_id = $post['case_type_id'];
-			$case_type = BK_Utils::get_option_group_name("case_type",$case_type_id);
+			$case_type = BK_Custom_Data::get_option_group_name("case_type",$case_type_id);
 
 			$contactIDs = $params['target_contact_id'];
 			
