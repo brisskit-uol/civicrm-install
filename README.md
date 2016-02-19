@@ -25,8 +25,7 @@ But this is not be the whole story...
 To build a local zip artifact, the default install invocation is sufficient...
 mvn clean install
 
-To deploy to the remote BRISSKit repos, we need to develop a script,
-mvn-remote-deploy.sh, which can manage automatic tunnelling.
-
-Special note. The above strategy is not working as at 4/5/2015.
-The tunnelling is not working as expected.
+To build and deploy to the remote BRISSKit repo, you need the requisite
+credentials in your maven settings.xml file.
+Then the following invocation should suffice:
+mvn clean deploy
