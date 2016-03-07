@@ -58,9 +58,10 @@
       var contact_id = GetUrlValue('cid')
       //alert("*" + contact_id + "*");
 
-      
+      if (contact_id != null && contact_id != '')
+      {
       jQuery('#page-title').html(bk_contact_name_block);
-
+      }
 
       
 

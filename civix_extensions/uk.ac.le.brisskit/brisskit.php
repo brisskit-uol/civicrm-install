@@ -546,7 +546,7 @@ function brisskit_civicrm_navigationMenu(&$params) {
   // These will appear after the normal position of the 'Cases' menu, in reverse order in which they are added
   // Note that the name affects the url so must match the values in Case.xml
   //
-  _add_menu($params, 'recruitment', 'Recruitment', 'Recruitments');
+ //_add_menu($params, 'recruitment', 'Recruitment', 'Recruitments');
 }
 
 function _add_menu(&$params, $name, $label, $plural_label) {
