@@ -1,5 +1,6 @@
-
-/* Remove display of Cases nav item. There's probably a nice way to do this but we couldn't get it to work in the civi backend Administer -> Customise Data and Screens -> Navigation Menu */
-.menumain.crm-Cases {
-  display: none;
+/*
+  When recent items are long, they are wider than the width of their containers. This allows them to wrap
+*/
+#crm-recently-viewed li.crm-recently-viewed {
+  white-space: normal !important;
 }
