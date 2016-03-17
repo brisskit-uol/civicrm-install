@@ -268,25 +268,36 @@ function brisskit_civicrm_buildForm($formName, &$form) {
   }
 }
 
-function _copy_family_id($contact_id_a, $contact_id_b, $params) {
+function _copy_family_id($contact_id_a, $contact_id_b, $related_contact_id) {
+  if ($contact_id_b == $related_contact_id) {
+    $contact_id_from = $contact_id_a;
+    $contact_id_to = $contact_id_b;
+  }
+  else if ($contact_id_a == $related_contact_id) {
+    $contact_id_to = $contact_id_a;
+    $contact_id_from = $contact_id_b;
+  }
+  else {
+     throw new Exception('Error copying family id');
+  }
+
   try {
-    $contact_a = BK_Utils::get_contact_with_custom_values($contact_id_a);
-    BK_Utils::audit("zzzzzzzzz" . print_r($contact_a, TRUE));
-    $contact_b = BK_Utils::get_contact_with_custom_values($contact_id_b);
+    $contact_from = BK_Utils::get_contact_with_custom_values($contact_id_from);
+    BK_Utils::audit("zzzzzzzzz" . print_r($contact_from, TRUE));
+    $contact_to = BK_Utils::get_contact_with_custom_values($contact_id_to);
     BK_Custom_Data::populate_custom_fields(BK_Custom_Data::genomics_fields(), $contact, "Genomics Data");
 
     $custom_field_id = BK_Custom_Data::get_custom_field_id('family_id');
-    $family_id = $contact_a['custom_' . $custom_field_id .'_1'];
+    $family_id = $contact_from['custom_' . $custom_field_id .'_1'];   # TODO - remove hardcoded custom field name if possible
     
 
-    BK_Utils::audit("$custom_field_id 'Contact', $contact_id_b, 'family_id', $family_id");
-    BK_Custom_Data::create_custom_value('Contact', $contact_id_b, 'family_id', $family_id);
+    BK_Utils::audit("$custom_field_id 'Contact', $contact_id_to, 'family_id', $family_id");
+    BK_Custom_Data::create_custom_value('Contact', $contact_id_to, 'family_id', $family_id);
   }
   catch(Exception $ex) {
     BK_Utils::set_status($ex->getMessage(),"error");	
   }
 }
-
 
 function _create_family_id($contact_id, $params) {
   try {
@@ -310,7 +321,12 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
   BK_Utils::audit("brisskit_civicrm_pre: $op, $objectName, $id, " .  print_r($params, TRUE) );
 
   /*
-    If a recruitment is being created update our read-only custom recruitment count field.
+   *
+   * Case
+   * ====
+   *
+   * If a recruitment is being created update our read-only custom recruitment count field.
+   *
   */
 	if ($objectName=='Case') {
     $case_id = $id;
@@ -337,25 +353,57 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
       BK_Temp::remove_patient_from_group ($contactId, $case_type_id);
     }
   }
+  /*
+   *
+   * CaseType
+   * ========
+   *
+   */
+  
 	else if ($objectName=='CaseType') {
     if ($op == 'delete') {
 			_case_type_delete($objectId);
     }
   }
 
-  // The code from here is based on original drupal module
-  BK_Utils::audit ("pre hook op $op name $objectName");
-  BK_Utils::audit ('params:'.print_r($params, TRUE));
-	global $prev_stat_id;
-	
-	#if only viewing or deleting don't do anything
-	if ($op=="view" || $op=="delete") return;
-	
-	# check if object is Individual or GroupContact
+  /*
+   *
+   * Individual
+   * ==========
+   *
+   * Prevent Individuals being  added from anywhere other than the main Contacts->New screen.
+   *
+   */
+  else if ($objectName=='Individual') {
+    if ($op==BK_Constants::ACTION_CREATE) {
+        BK_Utils::audit ("Indiv being created from URL".$params['entryURL']);
+        $pos = strpos($params['entryURL'], 'contact/add');
+        if ($pos === false) {
+          $options = array();
+          $options['expires']=0;
+          $message = ts('Individuals can only be added via the Contact screen');
+          CRM_Core_Session::setStatus($message, 'Add contact error', 'error', $options);
+          CRM_Utils_JSON::output(array('status' => ($message) ? $oper : $message));
+        }
+    }
+  }
 
-	#2. When the participant is saved the brisskit extension is triggered
+	
+  /*
+   *
+   * Individual or GroupContact
+   * ==========================
+   *
+   */
+	else if ($objectName=="GroupContact" || $objectName=='Individual') {
+    // The code from here is based on original drupal module
+    BK_Utils::audit ("pre hook op $op name $objectName");
+    BK_Utils::audit ('params:'.print_r($params, TRUE));
+    global $prev_stat_id;
+    
+    #if only viewing or deleting don't do anything
+    if ($op=="view" || $op=="delete") return;
 
-	if ($objectName=="GroupContact" || $objectName=='Individual') {
     if ($op=="create") {
       // _create_family_id($id, $params); Not done in post
     }
@@ -383,51 +431,71 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
 		}
 	}
 
-  BK_Utils::audit(print_r($params, TRUE));
-  BK_Utils::audit("Is recruitment");
-	
-	global $triggered;
-	if ($objectName=='Activity') {
+  /*
+   *
+   * Activity
+   * ========
+   *
+   */
+	else if ($objectName=='Activity') {
+	  global $triggered;
+
 		#try/catch will produce a nice drupal style message if there is a problem
 
 		try {
-			#check if activity has already had workflow triggered
+      //
+			// check if activity has already had workflow triggered
+      //
 			if (BK_Custom_Data::is_triggered($params)) return;
 			
-			#check if contact has been added to case type previously (result of 'Open Case' activity)
-			$case_type = BK_Core::is_added_to_duplicate_case($op, $_POST, $params);
+      //
+			// check if contact has been added to case type previously (result of 'Open Case' activity)
+      //
+      $case_type_name = BK_Core::is_added_to_duplicate_case($op, $_POST['case_type_id'], $params['activity_type_id'], $params['target_contact_id'], $params['case_id']);
 			
-			if ($case_type) {
-				BK_Utils::set_status("Sorry you can only add a contact to a study once. This contact has already been added to the '$case_type' Study","error");
-				drupal_goto("civicrm/contact/view",array("reset"=>1,"cid"=>$params['target_contact_id']));
+			if ($case_type_name) {
+				BK_Utils::set_status("Sorry you can only add a contact to a study once. This contact has already been added to the '$case_type_name' Study", "error");
+				drupal_goto("civicrm/contact/view",array("reset"=>1, "cid"=>$params['target_contact_id']));
 			}
 			
-			#check if participant available has just been set
+      //
+			// check if participant available has just been set and if so, invoke the BRISSkit 'participant_available' hook
+      //
 			if (BK_Core::is_participant_available($params)) {
-				#invoke the BRISSkit 'participant_available' hook
 				$results = module_invoke_all("participant_available",$params,$id);
 				$triggered = BK_Utils::check_results($results);
 			}
-			#if participant has just replied invoke the BRISSkit 'letter_response' hook
+      //
+			// if participant has just replied invoke the BRISSkit 'letter_response' hook
+      //
 			if (BK_Core::is_participant_reply_positive($params)) {
 				BK_Utils::set_status("Potential participant replied");
 				$results = module_invoke_all("letter_response",$params);
 				$triggered = BK_Utils::check_results($results);
 			}
 			
-			#if consent was given for this Activity (ie. status is Accepted)
+      //
+			// if consent was given for this Activity (ie. status is Accepted)
+      //
 			if (BK_Core::is_consent_level_accepted($params)) {
-				#check that the ActivityType is part of the case definition if not exit hook
+        //
+				// check that the ActivityType is part of the case definition if not exit hook
+        //
 				$activity_type = BK_Utils::get_activity_type_name($params['activity_type_id']);
-        #Tell the user whats happened
+
+        //
+        // Tell the user whats happened
+        //
 				if (!BK_Core::case_allows_activity($params['case_id'], $activity_type)) {
           BK_Utils::set_status("Case does not allow this activity");
           return;
         }
 				BK_Utils::set_status("'$activity_type' was Accepted");
 				
-				#invoke the BRISSkit 'consent_success' hook
-				$results = module_invoke_all("consent_success",$activity_type,$params);
+        //
+				// invoke the BRISSkit 'consent_success' hook
+        //
+				$results = module_invoke_all("consent_success", $activity_type, $params);
 				$triggered = BK_Utils::check_results($results);
 				
 			}
@@ -463,6 +531,7 @@ function brisskit_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
 			_case_type_deleted($objectId);
     }
   }
+
   // The code from here is based on original drupal module
 	global $prev_stat_id;
 	if ($objectName=='Individual') {
@@ -480,8 +549,9 @@ function brisskit_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
 	if ($objectName=="Relationship") {
     if ($op=="create") {
 
+      BK_Utils::audit(print_r($_POST, TRUE));
       BK_Utils::audit(print_r($objectRef, TRUE));
-      _copy_family_id($objectRef->contact_id_a, $objectRef->contact_id_b);
+      _copy_family_id($objectRef->contact_id_a, $objectRef->contact_id_b, $_POST['related_contact_id']);
     }
   }
 	
@@ -546,7 +616,7 @@ function brisskit_civicrm_navigationMenu(&$params) {
   // These will appear after the normal position of the 'Cases' menu, in reverse order in which they are added
   // Note that the name affects the url so must match the values in Case.xml
   //
- //_add_menu($params, 'recruitment', 'Recruitment', 'Recruitments');
+ _add_menu($params, 'recruitment', 'Recruitment', 'Recruitments');
 }
 
 function _add_menu(&$params, $name, $label, $plural_label) {
@@ -863,5 +933,28 @@ function check_access ($group) {
   }
   else {
     return FALSE;
+  }
+}
+
+
+# Adapted from https://civicrm.org/blogs/colemanw/create-your-own-tokens-fun-and-profit
+function  brisskit_civicrm_tokens(&$tokens) {
+  $tokens['date'] = array(
+    'date.date_short' => 'dd/mm/yyyy',
+    'date.date_med' => 'd Mon yyyy',
+    'date.date_long' => 'dth Month yyyy',
+  );
+}
+
+function brisskit_civicrm_tokenValues(&$values, $cids, $job = null, $tokens = array(), $context = null) {
+  if (!empty($tokens['date'])) {
+    $date = array(
+      'date.date_short' => date('d/m/Y'),
+      'date.date_med' => date('j M Y'),
+      'date.date_long' => date('jS F Y'),
+    );
+    foreach ($cids as $cid) {
+      $values[$cid] = empty($values[$cid]) ? $date : $values[$cid] + $date;
+    }
   }
 }
