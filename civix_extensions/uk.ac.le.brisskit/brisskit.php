@@ -375,20 +375,26 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
    * Prevent Individuals being  added from anywhere other than the main Contacts->New screen.
    *
    */
+
   else if ($objectName=='Individual') {
     if ($op==BK_Constants::ACTION_CREATE) {
-      BK_Utils::audit ("Indiv being created from URL".$params['entryURL']);
-      $pos = strpos($params['entryURL'], 'contact/add');
-      if ($pos === false) {
-        $options = array();
-        $options['expires']=0;
-        $message = ts('Individuals can only be added via the Contact screen');
-        CRM_Core_Session::setStatus($message, 'Add contact error', 'error', $options);
-        CRM_Utils_JSON::output(array('status' => ($message) ? $oper : $message));
+      //
+      // Contacts are also created when a user logs in for the first time - we don't want to do the check in this case
+      //
+      if (isset($params['entryURL'])) {
+        BK_Utils::audit ("Indiv being created from URL".$params['entryURL']);
+        $pos = strpos($params['entryURL'], 'contact/add');
+        if ($pos === false) {
+          $options = array();
+          $options['expires']=0;
+          $message = ts('Individuals can only be added via the Contact screen');
+          CRM_Core_Session::setStatus($message, 'Add contact error', 'error', $options);
+          CRM_Utils_JSON::output(array('status' => ($message) ? $op : $message));
+        }
       }
     }
-
   }
+
 
 	
   /*
