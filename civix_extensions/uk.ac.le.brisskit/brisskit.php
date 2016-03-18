@@ -268,12 +268,15 @@ function brisskit_civicrm_buildForm($formName, &$form) {
   }
 }
 
-function _copy_family_id($contact_id_a, $contact_id_b, $related_contact_id) {
-  if ($contact_id_b == $related_contact_id) {
+function _copy_family_id($contact_id_a, $contact_id_b, $contact_id) {
+  //
+  // Work out which way the relationship is so we know which direction to copy the family_id
+  //
+  if ($contact_id_a == $contact_id) {
     $contact_id_from = $contact_id_a;
     $contact_id_to = $contact_id_b;
   }
-  else if ($contact_id_a == $related_contact_id) {
+  else if ($contact_id_b == $contact_id) {
     $contact_id_to = $contact_id_a;
     $contact_id_from = $contact_id_b;
   }
@@ -283,13 +286,11 @@ function _copy_family_id($contact_id_a, $contact_id_b, $related_contact_id) {
 
   try {
     $contact_from = BK_Utils::get_contact_with_custom_values($contact_id_from);
-    BK_Utils::audit("zzzzzzzzz" . print_r($contact_from, TRUE));
     $contact_to = BK_Utils::get_contact_with_custom_values($contact_id_to);
     BK_Custom_Data::populate_custom_fields(BK_Custom_Data::genomics_fields(), $contact, "Genomics Data");
 
     $custom_field_id = BK_Custom_Data::get_custom_field_id('family_id');
-    $family_id = $contact_from['custom_' . $custom_field_id .'_1'];   # TODO - remove hardcoded custom field name if possible
-    
+    $family_id = $contact_from['custom_' . $custom_field_id .'_1'];   # _1 is OK 
 
     BK_Utils::audit("$custom_field_id 'Contact', $contact_id_to, 'family_id', $family_id");
     BK_Custom_Data::create_custom_value('Contact', $contact_id_to, 'family_id', $family_id);
@@ -376,16 +377,17 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
    */
   else if ($objectName=='Individual') {
     if ($op==BK_Constants::ACTION_CREATE) {
-        BK_Utils::audit ("Indiv being created from URL".$params['entryURL']);
-        $pos = strpos($params['entryURL'], 'contact/add');
-        if ($pos === false) {
-          $options = array();
-          $options['expires']=0;
-          $message = ts('Individuals can only be added via the Contact screen');
-          CRM_Core_Session::setStatus($message, 'Add contact error', 'error', $options);
-          CRM_Utils_JSON::output(array('status' => ($message) ? $oper : $message));
-        }
+      BK_Utils::audit ("Indiv being created from URL".$params['entryURL']);
+      $pos = strpos($params['entryURL'], 'contact/add');
+      if ($pos === false) {
+        $options = array();
+        $options['expires']=0;
+        $message = ts('Individuals can only be added via the Contact screen');
+        CRM_Core_Session::setStatus($message, 'Add contact error', 'error', $options);
+        CRM_Utils_JSON::output(array('status' => ($message) ? $oper : $message));
+      }
     }
+
   }
 
 	
@@ -550,8 +552,15 @@ function brisskit_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
     if ($op=="create") {
 
       BK_Utils::audit(print_r($_POST, TRUE));
+      BK_Utils::audit(print_r($_GET, TRUE));
       BK_Utils::audit(print_r($objectRef, TRUE));
-      _copy_family_id($objectRef->contact_id_a, $objectRef->contact_id_b, $_POST['related_contact_id']);
+
+      //
+      // We use the contact_id from the GET request, the contact we're copying from
+      // The contact(s) we're copying to is in the $_POST, a comma-separated list of ids
+      //
+      # _copy_family_id($objectRef->contact_id_a, $objectRef->contact_id_b, $_POST['related_contact_id']);
+      _copy_family_id($objectRef->contact_id_a, $objectRef->contact_id_b, $_GET['cid']);
     }
   }
 	
