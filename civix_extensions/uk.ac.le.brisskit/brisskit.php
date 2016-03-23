@@ -446,66 +446,68 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
 
 		try {
       if ($op=="create") {
-        //
-        // check if activity has already had workflow triggered
-        //
-        if (BK_Custom_Data::is_triggered($params)) return;
-        
-        //
-        // check if contact has been added to case type previously (result of 'Open Case' activity)
-        //
-        $case_type_name = BK_Core::is_added_to_duplicate_case($op, $_POST['case_type_id'], $params['activity_type_id'], $params['target_contact_id'], $params['case_id']);
-        
-        if ($case_type_name) {
-          BK_Utils::set_status("Sorry you can only add a contact to a study once. This contact has already been added to the '$case_type_name' Study", "error");
-          drupal_goto("civicrm/contact/view",array("reset"=>1, "cid"=>$params['target_contact_id']));
-        }
-        
-        //
-        // check if participant available has just been set and if so, invoke the BRISSkit 'participant_available' hook
-        //
-        if (BK_Core::is_participant_available($params)) {
-          $results = module_invoke_all("participant_available",$params,$id);
-          $triggered = BK_Utils::check_results($results);
-        }
-        //
-        // if participant has just replied invoke the BRISSkit 'letter_response' hook
-        //
-        if (BK_Core::is_participant_reply_positive($params)) {
-          BK_Utils::set_status("Potential participant replied");
-          $results = module_invoke_all("letter_response",$params);
-          $triggered = BK_Utils::check_results($results);
-        }
-        
-        //
-        // if consent was given for this Activity (ie. status is Accepted)
-        //
-        if (BK_Core::is_consent_level_accepted($params)) {
+        if (isset($params['case_id'])) {    # i.e. we're dealing with an activity associated with a case 
           //
-          // check that the ActivityType is part of the case definition if not exit hook
+          // check if activity has already had workflow triggered
           //
-          $activity_type = BK_Utils::get_activity_type_name($params['activity_type_id']);
-
-          //
-          // Tell the user whats happened
-          //
-          if (!BK_Core::case_allows_activity($params['case_id'], $activity_type)) {
-            BK_Utils::set_status("Case does not allow this activity");
-            return;
-          }
-          BK_Utils::set_status("'$activity_type' was Accepted");
+          if (BK_Custom_Data::is_triggered($params)) return;
           
           //
-          // invoke the BRISSkit 'consent_success' hook
+          // check if contact has been added to case type previously (result of 'Open Case' activity)
           //
-          $results = module_invoke_all("consent_success", $activity_type, $params);
-          $triggered = BK_Utils::check_results($results);
+          $case_type_name = BK_Core::is_added_to_duplicate_case($op, $_POST['case_type_id'], $params['activity_type_id'], $params['target_contact_id'], $params['case_id']);
+          
+          if ($case_type_name) {
+            BK_Utils::set_status("Sorry you can only add a contact to a study once. This contact has already been added to the '$case_type_name' Study", "error");
+            drupal_goto("civicrm/contact/view",array("reset"=>1, "cid"=>$params['target_contact_id']));
+          }
+          
+          //
+          // check if participant available has just been set and if so, invoke the BRISSkit 'participant_available' hook
+          //
+          if (BK_Core::is_participant_available($params)) {
+            $results = module_invoke_all("participant_available",$params,$id);
+            $triggered = BK_Utils::check_results($results);
+          }
+          //
+          // if participant has just replied invoke the BRISSkit 'letter_response' hook
+          //
+          if (BK_Core::is_participant_reply_positive($params)) {
+            BK_Utils::set_status("Potential participant replied");
+            $results = module_invoke_all("letter_response",$params);
+            $triggered = BK_Utils::check_results($results);
+          }
+          
+          //
+          // if consent was given for this Activity (ie. status is Accepted)
+          //
+          if (BK_Core::is_consent_level_accepted($params)) {
+            //
+            // check that the ActivityType is part of the case definition if not exit hook
+            //
+            $activity_type = BK_Utils::get_activity_type_name($params['activity_type_id']);
+
+            //
+            // Tell the user whats happened
+            //
+            if (!BK_Core::case_allows_activity($params['case_id'], $activity_type)) {
+              BK_Utils::set_status("Case does not allow this activity");
+              return;
+            }
+            BK_Utils::set_status("'$activity_type' was Accepted");
+            
+            //
+            // invoke the BRISSkit 'consent_success' hook
+            //
+            $results = module_invoke_all("consent_success", $activity_type, $params);
+            $triggered = BK_Utils::check_results($results);
+          }
         }
       }
-		}
-		catch(Exception $ex) {
-			BK_Utils::set_status($ex->getMessage(),"error");	
-		}
+    }
+    catch(Exception $ex) {
+      BK_Utils::set_status($ex->getMessage(),"error");	
+    }
 	}
 }
 
