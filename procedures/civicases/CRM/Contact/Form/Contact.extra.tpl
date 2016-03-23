@@ -1,7 +1,5 @@
 {literal}
 
-//TODO Need to disable phone fields in a "nice" way. Perhaps do the whole section??
-
 <style>
   input[readonly] {
     background-image: -webkit-gradient(linear, 0% 0%, 0% 100%, color-stop(1%, #ddd), color-stop(15%, #ccf)) !important;
