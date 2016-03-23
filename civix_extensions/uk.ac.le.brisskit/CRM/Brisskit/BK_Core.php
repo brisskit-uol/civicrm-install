@@ -286,7 +286,7 @@ static function pseudo_individual(&$params) {
 static function pseudo_family(&$params) {
 	$bkid = BK_ID::make_brisskit_id(TRUE);  // TRUE => family, not individual
 
-	BK_Custom_Data::set_custom_field('family_id',$bkid, $params);
+	BK_Custom_Data::set_custom_field('Family_ID',$bkid, $params);
 	return $bkid;
 }
 

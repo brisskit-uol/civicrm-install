@@ -289,11 +289,11 @@ function _copy_family_id($contact_id_a, $contact_id_b, $contact_id) {
     $contact_to = BK_Utils::get_contact_with_custom_values($contact_id_to);
     BK_Custom_Data::populate_custom_fields(BK_Custom_Data::genomics_fields(), $contact, "Genomics Data");
 
-    $custom_field_id = BK_Custom_Data::get_custom_field_id('family_id');
+    $custom_field_id = BK_Custom_Data::get_custom_field_id('Family_ID');
     $family_id = $contact_from['custom_' . $custom_field_id .'_1'];   # _1 is OK 
 
-    BK_Utils::audit("$custom_field_id 'Contact', $contact_id_to, 'family_id', $family_id");
-    BK_Custom_Data::create_custom_value('Contact', $contact_id_to, 'family_id', $family_id);
+    BK_Utils::audit("$custom_field_id 'Contact', $contact_id_to, 'Family_ID', $family_id");
+    BK_Custom_Data::create_custom_value('Contact', $contact_id_to, 'Family_ID', $family_id);
   }
   catch(Exception $ex) {
     BK_Utils::set_status($ex->getMessage(),"error");	
@@ -305,7 +305,7 @@ function _create_family_id($contact_id, $params) {
     $contact = BK_Utils::get_contact_with_custom_values($contact_id);
     BK_Custom_Data::populate_custom_fields(BK_Custom_Data::genomics_fields(), $contact, "Genomics Data");
     $family_id = BK_Core::pseudo_family($params);
-    BK_Custom_Data::create_custom_value('Contact', $contact_id, 'family_id', $family_id);
+    BK_Custom_Data::create_custom_value('Contact', $contact_id, 'Family_ID', $family_id);
   }
   catch(Exception $ex) {
     BK_Utils::set_status($ex->getMessage(),"error");	

@@ -179,29 +179,69 @@ class BK_Custom_Data {
             "is_active" => 1,
             "style"     => "Inline",
             "collapse_display" => 1));
+
     self::create_civi_custom_field($cg,
-			array("name"      => "family_id",
+			array("name"      => "Family_ID",
 						"label"     => "Family ID",
 						"data_type" => "String",
 						"html_type" => "Text",
             "is_active" => 1));
     self::create_civi_custom_field($cg,
-			array("name"      => "s_number",
+			array("name"      => "S_Number",
 						"label"     => "S Number",
 						"data_type" => "String",
 						"html_type" => "Text",
             "is_active" => 1));
     self::create_civi_custom_field($cg,
-			array("name"      => "nhs_number",
+			array("name"      => "NHS_Number",
 						"label"     => "NHS Number",
 						"data_type" => "String",
 						"html_type" => "Text",
             "is_active" => 1));
     self::create_civi_custom_field($cg,
-			array("name"      => "gel_participant_id",
+			array("name"      => "Gel_Participant_ID",
 						"label"     => "Gel Participant ID",
 						"data_type" => "String",
 						"html_type" => "Text",
+            "is_active" => 1));
+    self::create_civi_custom_field($cg,
+			array("name"      => "G_Number",
+						"label"     => "G Number",
+						"data_type" => "String",
+						"html_type" => "Text",
+            "is_active" => 1));
+
+    // This will be displayed as a select box so we create a group first
+    $og = self::create_civi_option_group(
+			array("name"      => "person_status_12345",
+						"label"     => "Person Status",
+						"is_active" => 1,
+						"is_reserved" => 1,
+            "title"     => "Person Status",
+    ));
+    self::create_civi_option_value(
+      "person_status_12345",
+			array("label"     => 'Proband',
+						"name"      => 'Proband',
+            "value"     => 'Proband',
+						"is_active" => 1,
+            "weight"    => 1
+    ));
+    self::create_civi_option_value(
+      "person_status_12345",
+			array("label"     => 'Relative',
+						"name"      => 'Relative',
+            "value"     => 'Relative',
+						"is_active" => 1,
+            "weight"    => 1
+    ));
+    // and finally the field (with the same label etc)
+    self::create_civi_custom_field($cg,
+			array("name"      => "Person_Status",
+						"label"     => "Person Status",
+						"data_type" => "String",
+						"html_type" => "Select",
+            "option_group_id" => $og['id'],
             "is_active" => 1));
 
 
@@ -272,10 +312,12 @@ class BK_Custom_Data {
   */
   static function genomics_fields() {
     $settings = array(
-        "family_id"           => "Family ID",
-        "s_number"            => "S Number",
-        "nhs_number"          => "NHS Number",
-        "gel_participant_id"  => "Gel Participant ID",
+        "Family_ID"           => "Family ID",
+        "S_Number"            => "S Number",
+        "NHS_Number"          => "NHS Number",
+        "G_Number"            => "G Number",
+        "Gel_Participant_ID"  => "Gel Participant ID",
+        "Person_Status"       => "Person Status",
     );
     return $settings;
   }
@@ -515,7 +557,7 @@ class BK_Custom_Data {
 
     $result = civicrm_api3('CustomField', 'get', array(
       'sequential' => 1,
-      'name' => "family_id",
+      'name' => "Family_ID",
     ));
     if (($result['count']==1) && ($result['is_error']==0) ) {
       $custom_field_id = $result['values'][0]['id'];
