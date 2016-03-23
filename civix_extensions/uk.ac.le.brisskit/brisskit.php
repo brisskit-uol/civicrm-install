@@ -340,12 +340,6 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
       $contactId = $params['client_id'][0];
       $case_type_id = $params['case_type_id'];
 
-      // Currently we just use the built-in caseCount function.  Future versions may check participant status/activities completed before
-      // setting this count.
-      BK_Utils::audit("Before setting recruitment count");
-      $result = BK_Custom_Data::set_recruitment_count ($contactId, CRM_Case_BAO_Case::caseCount($contactId, TRUE)+1);
-      BK_Utils::audit("After setting recruitment count");
-
       BK_Temp::add_patient_to_group ($contactId, $case_type_id);
     }
     else if ($op==BK_Constants::ACTION_DELETE) {
