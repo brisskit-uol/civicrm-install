@@ -202,9 +202,9 @@ function disableFormFields () {
     jQuery('#' + fieldId).attr('readonly', 'readonly'); 
   }
   
+  jQuery("input[data-crm-custom='Genomics_Data:Family_ID']").attr('readonly', 'readonly'); 
   jQuery("input[data-crm-custom='Genomics_Data:NHS_Number']").attr('readonly', 'readonly'); 
   jQuery("input[data-crm-custom='Genomics_Data:S_Number']").attr('readonly', 'readonly'); 
-
 }
 
 
