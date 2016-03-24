@@ -203,24 +203,6 @@ function brisskit_civicrm_links( $op, $objectName, $objectId, &$links, &$mask, &
  *
  */ 
 
-
-/**
- * Module containing core BRISSkit logic by implementing CiviCRM hook pre and post database writing.
- * within this logic it invokes BRISSkit specific hooks for particular stages of the study enrolment process
- * these include:
- *  
- *  - participant_available - once participant has passed the automatic/manual check that they are not deceased (ie. the Check participant is available activity is complete) and their status is Available
- *    - in this module a set of 'contact participant' activities are added including 'Positive reply received'
- *  
- *  - letter_response - once participant has responded positively to the letter (ie. the Positive reply received activity is complete)
- *    - in this module the participant stub is sent to the i2b2 web service
- *    - for the 2 consent modules (brisskit_tissue and brisskit_datacol) each creates a Consent to.. activity (provided the case implements that ActivityType) with status pending
- * 
- *  - consent_success - once participant has given 'Accepted' as response to particular Consent to.. activity
- *    - in the brisskit_tissue module this triggers the participant stub to be sent to the caTissue web service and the recording of this with a 'Data transfer' activity
- *    - in the brisskit_datacol module this triggers the creation of an 'Phone Call' activity to 'Organise data collection appointment with participant' 
- */
-
  include_once "CRM/Brisskit/BK_Core.php";
 
 //function brisskit_civicrm_alterContent(  &$content, $context, $tplName, &$object ) {
@@ -448,11 +430,6 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
       if ($op=="create") {
         if (isset($params['case_id'])) {    # i.e. we're dealing with an activity associated with a case 
           //
-          // check if activity has already had workflow triggered
-          //
-          if (BK_Custom_Data::is_triggered($params)) return;
-          
-          //
           // check if contact has been added to case type previously (result of 'Open Case' activity)
           //
           $case_type_name = BK_Core::is_added_to_duplicate_case($op, $_POST['case_type_id'], $params['activity_type_id'], $params['target_contact_id'], $params['case_id']);
@@ -460,47 +437,6 @@ function brisskit_civicrm_pre($op, $objectName, $id, &$params) {
           if ($case_type_name) {
             BK_Utils::set_status("Sorry you can only add a contact to a study once. This contact has already been added to the '$case_type_name' Study", "error");
             drupal_goto("civicrm/contact/view",array("reset"=>1, "cid"=>$params['target_contact_id']));
-          }
-          
-          //
-          // check if participant available has just been set and if so, invoke the BRISSkit 'participant_available' hook
-          //
-          if (BK_Core::is_participant_available($params)) {
-            $results = module_invoke_all("participant_available",$params,$id);
-            $triggered = BK_Utils::check_results($results);
-          }
-          //
-          // if participant has just replied invoke the BRISSkit 'letter_response' hook
-          //
-          if (BK_Core::is_participant_reply_positive($params)) {
-            BK_Utils::set_status("Potential participant replied");
-            $results = module_invoke_all("letter_response",$params);
-            $triggered = BK_Utils::check_results($results);
-          }
-          
-          //
-          // if consent was given for this Activity (ie. status is Accepted)
-          //
-          if (BK_Core::is_consent_level_accepted($params)) {
-            //
-            // check that the ActivityType is part of the case definition if not exit hook
-            //
-            $activity_type = BK_Utils::get_activity_type_name($params['activity_type_id']);
-
-            //
-            // Tell the user whats happened
-            //
-            if (!BK_Core::case_allows_activity($params['case_id'], $activity_type)) {
-              BK_Utils::set_status("Case does not allow this activity");
-              return;
-            }
-            BK_Utils::set_status("'$activity_type' was Accepted");
-            
-            //
-            // invoke the BRISSkit 'consent_success' hook
-            //
-            $results = module_invoke_all("consent_success", $activity_type, $params);
-            $triggered = BK_Utils::check_results($results);
           }
         }
       }
@@ -545,7 +481,7 @@ function brisskit_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
     }
 	}
 
-	if ($objectName=="GroupContact" || $objectName=='Individual') {
+	if ($objectName=='Individual') {
     if ($op=="create") {
       _create_family_id($objectId, array());
     }
@@ -568,32 +504,6 @@ function brisskit_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
   }
 	
 	if ($objectName=="GroupContact") {
-	}
-	
-	#when work flow has been triggered need to set the wf_trigger flag to 1
-	global $triggered;
-	if ($triggered) {
-		set_activity_triggered($objectId);
-		$triggered=false;
-	}
-}
-
-#implement BRISSkit participant available to be contacted hook
-# 3.1. Automatically creates activities defined in the contact_participant ActivitySet of the civicase XML 
-function brisskit_participant_available($params, $activity_id) {
-
-  // The code from here is based on original drupal module
-	#add activities related to contacting participant to case
-	
-	# 3.2. Changes participant status to ÔIn studyÕ
-	if (BK_Core::add_activity_set_to_case($params['case_id'],"contact_participant",$params['source_contact_id'])) {
-		$case_id = $params['case_id'];
-		$case_type = BK_Utils::get_case_type($case_id);
-		BK_Utils::set_contact_status_via_case($case_id, "In study","Status changed to 'In study' ($case_type) when availability confirmed.");
-
-		BK_Utils::set_status("Activities now scheduled to contact potential participant re. study enrolment");
-		BK_Utils::set_status("Participant status changed to 'In study'");
-		return true;   
 	}
 }
 
