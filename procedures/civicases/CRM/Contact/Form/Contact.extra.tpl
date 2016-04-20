@@ -79,6 +79,8 @@
     
   var bk_search_widget = ` 
 
+    <label id="mySaveMessage" style="font-family: 'Arial Bold'; font-size: 18px; color: red;"></label>
+
     <div id="bk_search_widget">
       <!--<label for="bk_search_name">Enter SNumber : </label>
       <input type="text" name="bk_search_name" id="bk_search_name" />
@@ -90,31 +92,58 @@
     <div id="myModal" class="modalsaj">
       <!-- Modal content -->
       <div class="modalsaj-content">
-        <span id="myModalClose" class="close">close</span>
+        <span id="myModalClose" class="close" style="font-family: 'Arial Bold';	font-size: 24px;">close</span>
 
-        <table style="width:100%">
+        <table style="width:80%">
           <tr>
-	    <td colspan="4">
+	    <td colspan="9">
             PMI Search. Enter any values and click on search.
             </td> 
           </tr>      
           <tr>
-            <td width="25%">
-              <label for="bk_snumber">First Name : </label>
-              <input type="text" name="bk_snumber" id="bk_snumber" />
+            <td align="center" width="10%" style="text-align:center; border-left: medium solid; border-top: medium solid; border-bottom: medium solid; border-right: medium solid;">
+              <label for="bk_snumber">SNumber</label>
+              <input type="text" name="bk_snumber" id="bk_snumber" maxlength="12" size="12"   />
             </td>
-            <td width="25%">
-              <label for="bk_snumber">Last Name : </label>
-              <input type="text" name="bk_snumber" id="bk_snumber" />
+            <td width="5%" style="text-align:center; background-color:black;">
+	    <FONT COLOR="white">OR</FONT>
             </td>
-            <td width="25%">
-              <label for="bk_snumber">SNumber : </label>
-              <input type="text" name="bk_snumber" id="bk_snumber" />
+            <td width="10%" style="text-align:center; border-left: medium solid; border-top: medium solid; border-bottom: medium solid; border-right: medium solid;">
+              <label for="bk_nhsnumber">NHS Number</label>
+              <input type="text" name="bk_nhsnumber" id="bk_nhsnumber" maxlength="12" size="12" />
             </td>
-            <td width="25%">
-              <label for="bk_snumber">Date of Birth : </label>
-              <input type="text" name="bk_snumber" id="bk_snumber" />
+            <td width="5%" style="text-align:center; background-color:black;">
+            <FONT COLOR="white">OR</FONT>
             </td>
+            <td width="10%" style="text-align:center; border-left: medium solid; border-top: medium solid; border-bottom: medium solid;">
+              <label for="bk_surname">Surname</label>
+              <input type="text" name="bk_surname" id="bk_surname" maxlength="25" size="12" />
+            </td>
+            <td width="10%" style="text-align:center; border-top: medium solid; border-bottom: medium solid;">
+              <label for="bk_forenames">Forenames</label>
+              <input type="text" name="bk_forenames" id="bk_forenames" maxlength="25" size="12" />
+            </td>
+            <td width="10%" style="text-align:center; border-top: medium solid; border-bottom: medium solid;">
+              <label for="bk_dob">DOB dd/mm/yyyy</label>
+              <input type="text" name="bk_dob" id="bk_dob" maxlength="10" size="13" />
+            </td>
+            <td width="10%" style="text-align:center; border-top: medium solid; border-bottom: medium solid;">
+              <label for="bk_postcode">Postcode</label>
+              <input type="text" name="bk_postcode" id="bk_postcode" maxlength="8" size="8" />
+            </td>
+            <td width="10%" style="text-align:center; border-top: medium solid; border-bottom: medium solid; border-right: medium solid;">
+              <label for="bk_address1">First line of address</label>
+              <input type="text" name="bk_address1" id="bk_address1" maxlength="30" size="30" />
+            </td>
+<!--
+            <td width="10%" style="text-align:center; border-top: medium solid; border-bottom: medium solid; border-right: medium solid;">
+              <label for="bk_telephone1">Home telephone</label>
+              <input type="text" name="bk_telephone1" id="bk_telephone1" maxlength="20" size="12" />
+            </td> 
+-->
+            <td width="10%">
+               <button type="button" id="myClearAll" style="height:100%">Clear All</button>
+            </td>                  
            </tr>
            <tr>
             <td colspan="4">
@@ -123,7 +152,20 @@
            </tr>
         </table>
 
-      <div id="mySearchResultsDiv" style='height:250px; overflow:scroll;'>
+      <div id="mySearchResultsDiv" style='height:390px; overflow:scroll;'>
+
+
+       <label id="mySearchResultsMessage"></label>
+
+
+
+
+
+
+
+
+
+
         <table style="width:100%" id="mySearchResults"></table>
       </div>           
       </div>
@@ -131,22 +173,80 @@
   `;
 
   jQuery( document ).ready(function() {
+
+/*
+  jQuery("#Contact").submit(function(e){
+   alert('submit intercepted');
+   var val = jQuery("input[type=submit][clicked=true]").val();
+   var btn = jQuery(this).find("input[type=submit]:focus" ).val();
+   alert(btn + 'submit intercepted ' + val);
+   e.preventDefault(e);
+  });
+*/
+
+  jQuery('#_qf_Contact_upload_view-top').click(function (e) {
+    //alert("Submit - Save");
+    //event.preventDefault();
+
+
+    if ( jQuery("input[data-crm-custom=Genomics_Data:S_Number]").val() == '')
+    {
+      jQuery('#mySaveMessage').html("&nbsp;&nbsp;  SNumber cannot be blank." + jQuery("input[data-crm-custom=Genomics_Data:S_Number]").val());
+      e.preventDefault(e);
+    }
+  });
+
+  jQuery('#_qf_Contact_upload_new-top').click(function (e) {
+    //alert("Submit - Save and New");
+    //event.preventDefault();
+
+    if ( jQuery("input[data-crm-custom=Genomics_Data:S_Number]").val() == '')
+    {
+      jQuery('#mySaveMessage').html("&nbsp;&nbsp;  SNumber cannot be blank." + jQuery("input[data-crm-custom=Genomics_Data:S_Number]").val());
+      e.preventDefault(e);
+    }
+  });
+
+
+
+
     // Insert our search widget
     if (jQuery('#bk_search_widget').length == 0) {
       jQuery('#contactDetails').prepend(bk_search_widget);
+      
 
       // Copy the patient details to the contact
       jQuery('#bk_search_button').click(function () {
+
+	/*
         jQuery.ajax({
             url:"http://www.h2ss.co.uk/h2ss/pmi?callback=jsonCallback&snumber=" + jQuery( "#bk_search_name" ).val() + "&surname=hgf",
             dataType: 'jsonp' // Notice! JSONP <-- P (lowercase)  
         });
+        */
+/*
+        jQuery.ajax({
+            url:"http://uhlgenomes-crm-test.xuhl-tr.nhs.uk:8080/genomics/pmi_dev?callback=jsonCallback&snumber=" + jQuery( "#bk_search_name" ).val() + "&surname=hgf",
+            dataType: 'jsonp' // Notice! JSONP <-- P (lowercase)  
+        });
+*/
+
       });
       displayAdditionalPhoneFields(1); // Create one extra phone input block so total = 2
     }
     disableFormFields ();
 
     jQuery('#myBtn').click(function () {
+
+        jQuery( "#bk_snumber" ).val("");
+        jQuery( "#bk_nhsnumber" ).val("");
+        jQuery( "#bk_forenames" ).val("");
+        jQuery( "#bk_surname" ).val("");
+	jQuery( "#bk_dob" ).val(""); 
+	jQuery( "#bk_postcode" ).val("");
+	jQuery( "#bk_address1" ).val(""); 
+	jQuery( "#bk_telephone1" ).val("");
+
             jQuery('#mySearchResults').empty();
             jQuery("#mySearchResults > tbody").html("");
             jQuery('#mySearchResultsDiv').scrollTop(0);           
@@ -157,20 +257,84 @@
             jQuery('#myModal').css('display','none');
     });
 
+    jQuery('#myClearAll').click(function () {
+        jQuery( "#bk_snumber" ).val("");
+        jQuery( "#bk_nhsnumber" ).val("");
+        jQuery( "#bk_forenames" ).val("");
+        jQuery( "#bk_surname" ).val("");
+	jQuery( "#bk_dob" ).val(""); 
+	jQuery( "#bk_postcode" ).val("");
+	jQuery( "#bk_address1" ).val(""); 
+	jQuery( "#bk_telephone1" ).val("");
+    });
+
     jQuery('#mySearch').click(function () {
+
+	    //alert("1" + jQuery( "#bk_snumber" ).val());
             jQuery('#mySearchResults').empty();
             jQuery("#mySearchResults > tbody").html("");
             jQuery('#mySearchResultsDiv').scrollTop(0);
                  
+            /* 
             jQuery.ajax({
                 url:"http://www.h2ss.co.uk/h2ss/pmi?callback=jsonCallbackAll&snumber=all&surname=hgf",
                 dataType: 'jsonp' // Notice! JSONP <-- P (lowercase) 
-               });               
+               }); 
+            */  
+
+	    // if bk_snumber or bk_nhsnumer - 2
+
+	    if (jQuery( "#bk_snumber" ).val() != "" && jQuery( "#bk_nhsnumber" ).val() == "")
+	    {
+	            jQuery.ajax({
+        	        url:"http://uhlgenomes-crm-test.xuhl-tr.nhs.uk:8080/genomics/pmi_dev?reqtype=2&snumber=" + jQuery( "#bk_snumber" ).val() + "",
+                	dataType: 'jsonp' // Notice! JSONP <-- P (lowercase) 
+            	    }); 
+	    }
+
+	    if (jQuery( "#bk_snumber" ).val() == "" && jQuery( "#bk_nhsnumber" ).val() != "")
+	    {
+	            jQuery.ajax({
+        	        url:"http://uhlgenomes-crm-test.xuhl-tr.nhs.uk:8080/genomics/pmi_dev?reqtype=2&nhsnumber=" + jQuery( "#bk_nhsnumber" ).val() + "",
+                	dataType: 'jsonp' // Notice! JSONP <-- P (lowercase) 
+            	    }); 
+	    }
+
+	    // if demographics - 1
+
+	    if (jQuery( "#bk_snumber" ).val() == "" && jQuery( "#bk_nhsnumber" ).val() == "")
+	    {
+	            jQuery.ajax({
+        	        url:"http://uhlgenomes-crm-test.xuhl-tr.nhs.uk:8080/genomics/pmi_dev?reqtype=1&demographics=" + jQuery( "#bk_surname" ).val() 
+														      + " " + jQuery( "#bk_forenames" ).val() 
+														      + " " + jQuery( "#bk_dob" ).val() 
+														      + " " + jQuery( "#bk_postcode" ).val()
+														      + " " + jQuery( "#bk_address1" ).val() 
+														      + " " + jQuery( "#bk_telephone1" ).val(),
+                	dataType: 'jsonp' // Notice! JSONP <-- P (lowercase) 
+            	    }); 
+	    }
+
+
+
+	    
+
+
+           
      });
 
      jQuery('#myPatient').live('click', function (e) {
+
+
+	    /*
             jQuery.ajax({
                 url:"http://www.h2ss.co.uk/h2ss/pmi?callback=jsonCallback&snumber=" + jQuery(this).val() + "&surname=hgf",
+                dataType: 'jsonp' // Notice! JSONP <-- P (lowercase) 
+            });
+	    */
+
+	    jQuery.ajax({
+                url:"http://uhlgenomes-crm-test.xuhl-tr.nhs.uk:8080/genomics/pmi_dev?reqtype=3&snumber=" + jQuery(this).val() + "",
                 dataType: 'jsonp' // Notice! JSONP <-- P (lowercase) 
             });
 
@@ -178,6 +342,7 @@
             e.stopPropagation();               
      });
 
+     
   });
 </script>
  
@@ -209,14 +374,19 @@ function disableFormFields () {
 
 function jsonCallbackAll(data)
 {
-    //alert('m');
+
+    if (data.error != "error")
+    {
+    //alert('jsonCallbackAll');
     jQuery('#mySearchResults').empty();
     jQuery("#mySearchResults > tbody").html("");
+    jQuery("#mySearchResultsMessage").html("");
     jQuery('#mySearchResultsDiv').scrollTop(0);
 
     var tr;
 
     tr = jQuery('<tr/>');
+    tr.append("<td>SCORE</td>");
     tr.append("<td>TITLE</td>");
     tr.append("<td>FORENAMES</td>");
     tr.append("<td>SURNAME</td>");
@@ -233,6 +403,7 @@ function jsonCallbackAll(data)
    
     jQuery.each(data, function(idx, obj) {      
             tr = jQuery('<tr/>');
+            tr.append("<td>" + obj.matchscorepercentage + "</td>");
             tr.append("<td>" + obj.title + "</td>");
             tr.append("<td>" + obj.forenames + "</td>");
             tr.append("<td>" + obj.surname + "</td>");
@@ -240,18 +411,27 @@ function jsonCallbackAll(data)
             tr.append("<td>" + obj.day + "/" + obj.month + "/" + obj.year + "</td>");
             tr.append("<td>" + obj.nhs_number + "</td>");
             tr.append("<td>" + obj.system_number + "</td>");           
-            tr.append("<td>" + obj.address_line_1 + ", " + obj.address_line_2 + ", " + obj.address_line_3 + "</td>");
+            tr.append("<td>" + obj.address_line_1 + " " + obj.address_line_2 + " " + obj.address_line_3+ " " + obj.address_line_4 + "</td>");
             tr.append("<td>" + obj.postcode + "</td>");
             tr.append("<td><button type='button' id='myPatient' name='myPatient' value='"+ obj.system_number +"'>Select</button></td>");        
             jQuery('#mySearchResults').append(tr);   
     });
 
     jQuery('#mySearchResultsDiv').scrollTop(0);
+    }
+    else
+    {
+      jQuery('#mySearchResults').empty();
+      jQuery("#mySearchResultsMessage").html("No Results Found");   
+    }
    
 }
 
 function jsonCallback(data)
 {
+  //alert('jsonCallback');
+    
+
   if (data.is_patient_found == 'N') { alert("patient not found")}
 
   // clear fields
@@ -306,14 +486,115 @@ function jsonCallback(data)
     jQuery('#prefix_id option[value=4]').attr('selected','selected');
     jQuery('#select2-chosen-3').text('Dr.');
   }
-  
+  if (data.title == 'BR')
+  {
+    jQuery('#prefix_id option[value=4]').attr('selected','selected');
+    jQuery('#select2-chosen-3').text('Br.');
+  }
+  if (data.title == 'CANON')
+  {
+    jQuery('#prefix_id option[value=4]').attr('selected','selected');
+    jQuery('#select2-chosen-3').text('Canon.');
+  }
+  if (data.title == 'COL')
+  {
+    jQuery('#prefix_id option[value=4]').attr('selected','selected');
+    jQuery('#select2-chosen-3').text('Col.');
+  }
+  if (data.title == 'DAME')
+  {
+    jQuery('#prefix_id option[value=4]').attr('selected','selected');
+    jQuery('#select2-chosen-3').text('Dame.');
+  }
+  if (data.title == 'FR')
+  {
+    jQuery('#prefix_id option[value=4]').attr('selected','selected');
+    jQuery('#select2-chosen-3').text('Fr.');
+  }
+  if (data.title == 'HON')
+  {
+    jQuery('#prefix_id option[value=4]').attr('selected','selected');
+    jQuery('#select2-chosen-3').text('Hon.');
+  }
+  if (data.title == 'LADY')
+  {
+    jQuery('#prefix_id option[value=4]').attr('selected','selected');
+    jQuery('#select2-chosen-3').text('Lady.');
+  }
+  if (data.title == 'LORD')
+  {
+    jQuery('#prefix_id option[value=4]').attr('selected','selected');
+    jQuery('#select2-chosen-3').text('Lord.');
+  }
+  if (data.title == 'LT')
+  {
+    jQuery('#prefix_id option[value=4]').attr('selected','selected');
+    jQuery('#select2-chosen-3').text('Lt.');
+  }
+  if (data.title == 'MAJOR')
+  {
+    jQuery('#prefix_id option[value=4]').attr('selected','selected');
+    jQuery('#select2-chosen-3').text('Major.');
+  }
+  if (data.title == 'MSGR')
+  {
+    jQuery('#prefix_id option[value=4]').attr('selected','selected');
+    jQuery('#select2-chosen-3').text('Msgr.');
+  }
+  if (data.title == 'MSTR')
+  {
+    jQuery('#prefix_id option[value=4]').attr('selected','selected');
+    jQuery('#select2-chosen-3').text('Mstr.');
+  }
+  if (data.title == 'PROF')
+  {
+    jQuery('#prefix_id option[value=4]').attr('selected','selected');
+    jQuery('#select2-chosen-3').text('Prof.');
+  }
+  if (data.title == 'RABBI')
+  {
+    jQuery('#prefix_id option[value=4]').attr('selected','selected');
+    jQuery('#select2-chosen-3').text('Rabbi.');
+  }
+  if (data.title == 'REV')
+  {
+    jQuery('#prefix_id option[value=4]').attr('selected','selected');
+    jQuery('#select2-chosen-3').text('Rev.');
+  }
+  if (data.title == 'RTHON')
+  {
+    jQuery('#prefix_id option[value=4]').attr('selected','selected');
+    jQuery('#select2-chosen-3').text('Rthon.');
+  }
+  if (data.title == 'SGT')
+  {
+    jQuery('#prefix_id option[value=4]').attr('selected','selected');
+    jQuery('#select2-chosen-3').text('Sgt.');
+  }
+  if (data.title == 'SIR')
+  {
+    jQuery('#prefix_id option[value=4]').attr('selected','selected');
+    jQuery('#select2-chosen-3').text('Sir.');
+  }
+  if (data.title == 'SR.')
+  {
+    jQuery('#prefix_id option[value=4]').attr('selected','selected');
+    jQuery('#select2-chosen-3').text('Sr.');
+  }
+
+  //alert(data.deceased);
+
   if (data.deceased == '0')
   {
+    //alert("1" + data.deceased);
+
     jQuery('#is_deceased').attr('checked', false);  
   }
   
   if (data.deceased == '1')
   {
+    //alert("2" + data.deceased);
+
     jQuery('#is_deceased').attr('checked', true); 
   }
   
@@ -327,12 +608,12 @@ function jsonCallback(data)
   jQuery('#address_1_city').val(data.address_line_3);
   jQuery('#address_1_postal_code').val(data.postcode);
   
-  if (data.sex == 'Female')
+  if (data.sex == 'F')
   {
   jQuery('#civicrm_gender_Female_1').attr('checked', true);
   }
   
-  if (data.sex == 'Male')
+  if (data.sex == 'M')
   {
   jQuery('#civicrm_gender_Male_2').attr('checked', true);
   }
@@ -342,7 +623,7 @@ function jsonCallback(data)
   jQuery('#civicrm_gender_Transgender_3').attr('checked', true);
   }
   
-  if (data.day != '' && data.month != '' && data.year != '')
+  if (data.day != '' && data.month != '' && data.year != '0')
   {
     jQuery('#birth_date_display').val(data.day + '/' + data.month + '/' + data.year);  
     jQuery('#birth_date').val(data.day + '/' + data.month + '/' + data.year);  

@@ -32,16 +32,20 @@
   <tr>
     <td width="40%">
 	<label id="p_display_name" style="font-style: normal; font-family: Arial, Helvetica, sans-serif; font-size: 20px;"></label>
+        <input type="hidden" id="h_display_name">
 	<!--<label id="p_prefix_id" style="font-style: normal; font-family: Arial, Helvetica, sans-serif; font-size: 20px;"></label>-->
      </td>
     <td width="20%">
 	<label id="p_birth_date" style="font-style: normal; font-family: Arial, Helvetica, sans-serif; font-size: 20px;"></label>
+        <input type="hidden" id="h_birth_date">
      </td>
     <td width="20%">
 	<label id="p_gender" style="font-style: normal; font-family: Arial, Helvetica, sans-serif; font-size: 20px;"></label>
+        <input type="hidden" id="h_gender">
     </td>
     <td width="20%">
 	<label id="p_custom_12" style="font-style: normal; font-family: Arial, Helvetica, sans-serif; font-size: 20px;"></label>
+        <input type="hidden" id="h_custom_12">
     </td>
   </tr>
 
@@ -55,15 +59,30 @@
     if (jQuery('#bk_contact_name_block').length == 0) {
 
 
+
+      
+
       var contact_id = GetUrlValue('cid')
       //alert("*" + contact_id + "*");
 
       if (contact_id != null && contact_id != '')
       {
+
+      jQuery('#Genomics_Case_Data').prepend("<button type='button' id='myBarcode' name='myBarcode'>Generate Barcodes</button><br><br>");
+
       jQuery('#page-title').html(bk_contact_name_block);
       }
 
-      
+      jQuery('#myBarcode').click(function () {
+
+location.href = "http://uhlgenomes-crm-test.xuhl-tr.nhs.uk:8080/genomics/barcode?nhs=" + jQuery('#h_custom_12').val() + "&dob=" + jQuery('#h_birth_date').val();
+
+/*            jQuery.ajax({
+                url:"http://uhlgenomes-crm-test.xuhl-tr.nhs.uk:8080/genomics/barcode?nhs=" + jQuery('#p_custom_12').val() + "&dob=" + jQuery('#p_birth_date').val(),
+                dataType: 'jsonp' // Notice! JSONP <-- P (lowercase) 
+               }); 
+*/
+      });
 
 /*    var customfieldID_Family_ID
 
@@ -102,11 +121,11 @@
         //alert(result.values[0].custom_13);
         //jQuery('#page-title').append('[birth_date : ' + result.values[0].birth_date + '] ');
 
-if (result.values[0].custom_12 != null) { jQuery('#p_custom_12').text('NHS No. ' + result.values[0].custom_12); }
-if (result.values[0].birth_date != null) { jQuery('#p_birth_date').text('Born. ' + result.values[0].birth_date); }
+if (result.values[0].custom_12 != null) { jQuery('#p_custom_12').text('NHS No. ' + result.values[0].custom_12); jQuery('#h_custom_12').val(result.values[0].custom_12); }
+if (result.values[0].birth_date != null) { jQuery('#p_birth_date').text('Born. ' + result.values[0].birth_date); jQuery('#h_birth_date').val(result.values[0].birth_date); }
 if (result.values[0].prefix_id != null) { jQuery('#p_prefix_id').text(result.values[0].prefix_id); }
-if (result.values[0].display_name != null) { jQuery('#p_display_name').text(result.values[0].display_name); }
-if (result.values[0].gender != null) { jQuery('#p_gender').text('Gender. ' + result.values[0].gender); }
+if (result.values[0].display_name != null) { jQuery('#p_display_name').text(result.values[0].display_name); jQuery('#h_display_name').val(result.values[0].display_name); }
+if (result.values[0].gender != null) { jQuery('#p_gender').text('Gender. ' + result.values[0].gender); jQuery('#h_gender').val(result.values[0].gender); }
 
 
 if (result.values[0].is_deceased != null && result.values[0].is_deceased == '1') { jQuery('#bk_contact_name_block').css('background-color','red'); jQuery('#p_display_name').append(' (Deceased)'); }
