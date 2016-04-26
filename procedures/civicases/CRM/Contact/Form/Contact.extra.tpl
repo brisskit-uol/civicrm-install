@@ -440,7 +440,17 @@ function jsonCallback(data)
   jQuery('#prefix_id option[value=0]').attr('selected','selected');
   jQuery('#select2-choice').html('');
   jQuery('#select2-chosen-3').text('');
-  jQuery('#is_deceased').attr('checked', false);
+
+
+  if (data.deceased == 'true')
+  {
+    jQuery('#is_deceased').attr('checked', true);
+  }
+  else
+  {
+    jQuery('#is_deceased').attr('checked', false);
+  }
+
   jQuery('#job_title').val('');
   jQuery('#phone_1_phone').val('');
   jQuery('#phone_2_phone').val('');
@@ -618,9 +628,14 @@ function jsonCallback(data)
   jQuery('#civicrm_gender_Male_2').attr('checked', true);
   }
   
-  if (data.sex == 'Transgender')
+  if (data.sex == 'I')
   {
-  jQuery('#civicrm_gender_Transgender_3').attr('checked', true);
+  jQuery('#civicrm_gender_Indeterminate_3').attr('checked', true);
+  }
+
+  if (data.sex == 'U' || data.sex == '')
+  {
+  jQuery('#civicrm_gender_Unrecorded_4').attr('checked', true);
   }
   
   if (data.day != '' && data.month != '' && data.year != '0')
